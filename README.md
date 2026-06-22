@@ -151,4 +151,4 @@ go vet ./...      # 静的解析
 
 ## ライセンス
 
-(未定)
+[MIT License](./LICENSE)
