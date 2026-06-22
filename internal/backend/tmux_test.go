@@ -38,3 +38,43 @@ func TestTmuxBuilders(t *testing.T) {
 		t.Fatalf("KillCmd = %+v", got)
 	}
 }
+
+func TestParseTmuxList(t *testing.T) {
+	out := "main|1|3\nwork|0|1\n"
+	got, err := parseTmuxList(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []Session{
+		{Name: "main", Attached: true, Windows: 3},
+		{Name: "work", Attached: false, Windows: 1},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("parseTmuxList = %+v, want %+v", got, want)
+	}
+}
+
+func TestParseTmuxListEmpty(t *testing.T) {
+	got, err := parseTmuxList("")
+	if err != nil || got != nil {
+		t.Fatalf("parseTmuxList(\"\") = %+v, %v", got, err)
+	}
+}
+
+func TestTmuxListNoServer(t *testing.T) {
+	tx := newTmuxWithRun(func(args ...string) (string, error) {
+		return "no server running on /tmp/tmux-1000/default", errFake
+	})
+	got, err := tx.List()
+	if err != nil || got != nil {
+		t.Fatalf("List() with no server = %+v, %v (want nil, nil)", got, err)
+	}
+}
+
+var errFake = errorsNew("exit status 1")
+
+func errorsNew(s string) error { return &fakeErr{s} }
+
+type fakeErr struct{ s string }
+
+func (e *fakeErr) Error() string { return e.s }
