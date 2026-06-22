@@ -2,8 +2,10 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
+	"runtime/debug"
 
 	tea "github.com/charmbracelet/bubbletea"
 
@@ -14,6 +16,14 @@ import (
 )
 
 func main() {
+	showVersion := flag.Bool("version", false, "バージョンを表示して終了する")
+	flag.Parse()
+	if *showVersion {
+		bi, ok := debug.ReadBuildInfo()
+		fmt.Println(app.FormatVersion(bi, ok))
+		return
+	}
+
 	current := env.CurrentMux(env.OSLookup)
 
 	all := []backend.Backend{backend.NewTmux(), backend.NewZellij()}
