@@ -1,7 +1,9 @@
 package upgrade
 
 import (
+	"bytes"
 	"io"
+	"strings"
 	"testing"
 )
 
@@ -141,5 +143,70 @@ func TestRun_AppliesUpdate(t *testing.T) {
 	}
 	if string(gotChecksum) != string([]byte{0xde, 0xad, 0xbe, 0xef}) {
 		t.Fatalf("checksum デコード不一致: %x", gotChecksum)
+	}
+}
+
+// --- Finding #1: readCapped ---
+
+func TestReadCapped_UnderLimit(t *testing.T) {
+	data := []byte("hello")
+	b, err := readCapped(bytes.NewReader(data), 100)
+	if err != nil {
+		t.Fatalf("予期しないエラー: %v", err)
+	}
+	if string(b) != "hello" {
+		t.Fatalf("got %q, want %q", b, "hello")
+	}
+}
+
+func TestReadCapped_AtLimit(t *testing.T) {
+	data := []byte("hello")
+	b, err := readCapped(bytes.NewReader(data), int64(len(data)))
+	if err != nil {
+		t.Fatalf("上限ちょうどでエラー: %v", err)
+	}
+	if string(b) != "hello" {
+		t.Fatalf("got %q, want %q", b, "hello")
+	}
+}
+
+func TestReadCapped_OverLimit(t *testing.T) {
+	data := strings.NewReader("hello world")
+	b, err := readCapped(data, 5)
+	if err == nil {
+		t.Fatal("上限超過でエラーにならない")
+	}
+	if b != nil {
+		t.Fatal("エラー時に nil 以外が返った")
+	}
+}
+
+// --- Finding #2: requireHTTPS / Run with http:// asset URL ---
+
+func TestRun_NonHTTPS_AssetURL(t *testing.T) {
+	api := "https://api/latest"
+	// binary URL は http:// (non-https) — Run はエラーを返し Apply を呼ばない
+	body := []byte(`{"tag_name":"v0.2.0","assets":[
+		{"name":"navmux_linux_amd64","browser_download_url":"http://x/bin"},
+		{"name":"SHA256SUMS","browser_download_url":"https://x/sums"}
+	]}`)
+	sums := []byte("deadbeef  navmux_linux_amd64\n")
+	applied := false
+	r := Runner{
+		HTTPGet: fakeHTTP(map[string][]byte{
+			api:            body,
+			"http://x/bin": []byte("BINARY"),
+			"https://x/sums": sums,
+		}),
+		Apply: func(io.Reader, []byte) error { applied = true; return nil },
+		GOOS:  "linux", GOARCH: "amd64",
+		Current: "v0.1.0", APIURL: api, Out: io.Discard,
+	}
+	err := r.Run()
+	if err == nil {
+		t.Fatal("http:// 資産 URL でエラーにならない")
+	}
+	if applied {
+		t.Fatal("エラー後に Apply が呼ばれた")
 	}
 }

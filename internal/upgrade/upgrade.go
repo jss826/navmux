@@ -144,6 +144,29 @@ func NewRunner(current string) Runner {
 	}
 }
 
+const maxDownloadBytes = 100 << 20 // 100 MiB: release binaries are ~10–15 MiB
+
+// readCapped reads from r up to max bytes. If the source has more than max
+// bytes, it returns an error instead of buffering an unbounded amount.
+func readCapped(r io.Reader, max int64) ([]byte, error) {
+	b, err := io.ReadAll(io.LimitReader(r, max+1))
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(b)) > max {
+		return nil, fmt.Errorf("レスポンスが上限 %d バイトを超えました", max)
+	}
+	return b, nil
+}
+
+// requireHTTPS は URL のスキームが https:// であることを検証する。
+func requireHTTPS(url string) error {
+	if !strings.HasPrefix(url, "https://") {
+		return fmt.Errorf("資産 URL が https ではありません: %s", url)
+	}
+	return nil
+}
+
 func httpGet(url string) ([]byte, error) {
 	client := &http.Client{Timeout: 30 * time.Second}
 	req, err := http.NewRequest(http.MethodGet, url, nil)
@@ -159,7 +182,7 @@ func httpGet(url string) ([]byte, error) {
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("HTTP %d: %s", resp.StatusCode, url)
 	}
-	return io.ReadAll(resp.Body)
+	return readCapped(resp.Body, maxDownloadBytes)
 }
 
 // Run は latest を参照し、必要なら download→検証→自己置換する。
@@ -185,6 +208,9 @@ func (r Runner) Run() error {
 	if !ok {
 		return fmt.Errorf("SHA256SUMS が %s に見つかりません", rel.TagName)
 	}
+	if err := requireHTTPS(sumsAsset.URL); err != nil {
+		return err
+	}
 	sums, err := r.HTTPGet(sumsAsset.URL)
 	if err != nil {
 		return fmt.Errorf("SHA256SUMS の取得に失敗: %w", err)
@@ -198,6 +224,9 @@ func (r Runner) Run() error {
 		return fmt.Errorf("checksum のデコードに失敗: %w", err)
 	}
 
+	if err := requireHTTPS(asset.URL); err != nil {
+		return err
+	}
 	bin, err := r.HTTPGet(asset.URL)
 	if err != nil {
 		return fmt.Errorf("バイナリの取得に失敗: %w", err)
