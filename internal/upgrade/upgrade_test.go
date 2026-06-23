@@ -82,6 +82,11 @@ func TestChecksumFor(t *testing.T) {
 	if _, ok := checksumFor(sums, "navmux_darwin_arm64"); ok {
 		t.Fatal("非存在で ok=true")
 	}
+	// binary モード（GNU sha256sum は Windows 既定で name に '*' が付く）も引けること
+	bin := []byte("cccc3333 *navmux_linux_arm64\n")
+	if h, ok := checksumFor(bin, "navmux_linux_arm64"); !ok || h != "cccc3333" {
+		t.Fatalf("binary モード ('*' 付き) を引けない: %q ok=%v", h, ok)
+	}
 }
 
 // fakeHTTP は URL→body のマップで HTTPGet を差し替える。

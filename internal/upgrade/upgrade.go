@@ -106,12 +106,14 @@ func assetFor(assets []Asset, goos, goarch string) (Asset, bool) {
 	return Asset{}, false
 }
 
-// checksumFor は SHA256SUMS（"<hex>␣␣<name>" 行）から assetName の hex を引く。
+// checksumFor は SHA256SUMS から assetName の hex を引く。
+// text モード "<hex>␣␣<name>" と binary モード "<hex>␣*<name>" の両方を受ける
+// （GNU sha256sum は Windows 既定が binary モードで name に '*' が付くため）。
 func checksumFor(sums []byte, assetName string) (string, bool) {
 	sc := bufio.NewScanner(bytes.NewReader(sums))
 	for sc.Scan() {
 		fields := strings.Fields(sc.Text())
-		if len(fields) == 2 && fields[1] == assetName {
+		if len(fields) == 2 && strings.TrimPrefix(fields[1], "*") == assetName {
 			return fields[0], true
 		}
 	}
