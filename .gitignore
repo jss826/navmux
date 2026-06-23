@@ -2,6 +2,7 @@
 /navmux
 /navmux.exe
 *.exe
+/dist/
 
 # Go
 *.test
