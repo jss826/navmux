@@ -24,6 +24,33 @@ go install github.com/jss826/navmux/cmd/navmux@latest
 go install github.com/jss826/navmux/cmd/navmux@v0.1.0
 ```
 
+> **`go install` は PATH を変更しません。** バイナリを上記ディレクトリに置くだけなので、`navmux` がコマンドとして見つからない場合はそのディレクトリを PATH に通してください。
+
+#### Windows での PATH 設定
+
+Go の公式インストーラ（MSI）が PATH に追加するのは Go ツールチェーン本体（`C:\Program Files\Go\bin`）だけで、`go install` の出力先 `%USERPROFILE%\go\bin` は**自動では追加されません**。新しい環境では一度だけ手動で通す必要があります。
+
+PowerShell で以下を一度実行します（既に通っていれば何もしない安全版）:
+
+```powershell
+$go = "$(go env GOPATH)\bin"
+$cur = [Environment]::GetEnvironmentVariable('Path','User')
+if (($cur -split ';') -notcontains $go) {
+  [Environment]::SetEnvironmentVariable('Path', "$cur;$go", 'User')
+  "追加しました: $go（新しいターミナルから有効）"
+} else { "既に PATH にあります: $go" }
+```
+
+設定は**新しく開いたターミナルから有効**になります（実行中のターミナルには即反映されません）。確認は `Get-Command navmux` または `where.exe navmux`。
+
+#### macOS / Linux での PATH 設定
+
+シェルの設定ファイル（`~/.bashrc` / `~/.zshrc` 等）に追記します:
+
+```sh
+export PATH="$PATH:$(go env GOPATH)/bin"
+```
+
 ### ソースからビルド
 
 ```sh
