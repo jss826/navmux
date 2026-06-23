@@ -55,3 +55,29 @@ func TestZellijListNoSessions(t *testing.T) {
 		t.Fatalf("List() no sessions = %+v, %v", got, err)
 	}
 }
+
+func TestZellijSessionOps(t *testing.T) {
+	ops := NewZellij().SessionOps(Session{Name: "foo"})
+	want := map[string]string{
+		"新規タブ":  "zellij -s foo action new-tab",
+		"分割(縦)": "zellij -s foo action new-pane -d right",
+		"分割(横)": "zellij -s foo action new-pane -d down",
+		"次タブ":   "zellij -s foo action go-to-next-tab",
+		"閉じる":   "zellij -s foo action close-pane",
+	}
+	got := map[string]string{}
+	for _, o := range ops {
+		got[o.Label] = o.Command.Display
+	}
+	for k, v := range want {
+		if got[k] != v {
+			t.Fatalf("%s: got %q want %q", k, got[k], v)
+		}
+	}
+	// EXITED セッションでは無効
+	for _, o := range NewZellij().SessionOps(Session{Name: "foo", Dead: true}) {
+		if o.Enabled {
+			t.Fatalf("EXITED で %s が有効になっている", o.Label)
+		}
+	}
+}

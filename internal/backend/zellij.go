@@ -49,6 +49,18 @@ func (z *Zellij) KillCmd(name string) Command {
 
 func (z *Zellij) CanRename() bool { return false }
 
+func (z *Zellij) SessionOps(s Session) []OpPreset {
+	en := s.Name != "" && !s.Dead
+	n := s.Name
+	return []OpPreset{
+		{Label: "新規タブ", Command: cmd(zellijBin, "-s", n, "action", "new-tab"), Enabled: en},
+		{Label: "分割(縦)", Command: cmd(zellijBin, "-s", n, "action", "new-pane", "-d", "right"), Enabled: en},
+		{Label: "分割(横)", Command: cmd(zellijBin, "-s", n, "action", "new-pane", "-d", "down"), Enabled: en},
+		{Label: "次タブ", Command: cmd(zellijBin, "-s", n, "action", "go-to-next-tab"), Enabled: en},
+		{Label: "閉じる", Command: cmd(zellijBin, "-s", n, "action", "close-pane"), Enabled: en},
+	}
+}
+
 func (z *Zellij) List() ([]Session, error) {
 	out, err := z.run("list-sessions", "-n")
 	if err != nil {

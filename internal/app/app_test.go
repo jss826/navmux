@@ -25,6 +25,7 @@ func (f fakeBackend) RenameCmd(string, string) (backend.Command, bool) {
 }
 func (f fakeBackend) KillCmd(string) backend.Command { return backend.Command{} }
 func (f fakeBackend) CanRename() bool                { return false }
+func (f fakeBackend) SessionOps(backend.Session) []backend.OpPreset { return nil }
 
 func names(bs []backend.Backend) []string {
 	out := make([]string, len(bs))
