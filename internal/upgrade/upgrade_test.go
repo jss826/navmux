@@ -49,3 +49,20 @@ func TestIsNewer(t *testing.T) {
 		}
 	}
 }
+
+func TestAssetFor(t *testing.T) {
+	assets := []Asset{
+		{Name: "navmux_linux_amd64", URL: "u1"},
+		{Name: "navmux_windows_amd64.exe", URL: "u2"},
+		{Name: "SHA256SUMS", URL: "u3"},
+	}
+	if a, ok := assetFor(assets, "linux", "amd64"); !ok || a.URL != "u1" {
+		t.Fatalf("linux/amd64: %+v ok=%v", a, ok)
+	}
+	if a, ok := assetFor(assets, "windows", "amd64"); !ok || a.URL != "u2" {
+		t.Fatalf("windows/amd64 は .exe 付き名で一致すべき: %+v ok=%v", a, ok)
+	}
+	if _, ok := assetFor(assets, "darwin", "arm64"); ok {
+		t.Fatal("非存在 asset で ok=true")
+	}
+}

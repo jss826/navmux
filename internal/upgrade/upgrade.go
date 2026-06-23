@@ -79,3 +79,18 @@ func isNewer(current, latest string) bool {
 	}
 	return false
 }
+
+// assetFor は goos/goarch に対応するバイナリ資産を返す。
+// 期待名は navmux_<goos>_<goarch>、windows のみ .exe を付与する。
+func assetFor(assets []Asset, goos, goarch string) (Asset, bool) {
+	name := "navmux_" + goos + "_" + goarch
+	if goos == "windows" {
+		name += ".exe"
+	}
+	for _, a := range assets {
+		if a.Name == name {
+			return a, true
+		}
+	}
+	return Asset{}, false
+}
