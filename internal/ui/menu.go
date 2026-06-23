@@ -8,9 +8,10 @@ import (
 type itemKind int
 
 const (
-	kindAction itemKind = iota // セッションアクション（attach/new/rename/kill）
-	kindOp                     // mux 操作
-	kindSep                    // 区切り（選択不可）
+	kindAction  itemKind = iota // セッションアクション（attach/new/rename/kill）
+	kindOp                      // mux 操作
+	kindSep                     // 区切り（選択不可）
+	kindCapture                 // 画面ダンプを取得してコピーする操作
 )
 
 // menuItem は右ペインの 1 行。display は「実行:」行/コピーに使う。
@@ -37,8 +38,12 @@ func buildMenu(b backend.Backend, sel backend.Session) []menuItem {
 		items[2].display = rc.Display
 	}
 	for _, op := range b.SessionOps(sel) {
+		k := kindOp
+		if op.Capture {
+			k = kindCapture
+		}
 		items = append(items, menuItem{
-			kind:    kindOp,
+			kind:    k,
 			label:   op.Label,
 			command: op.Command,
 			display: op.Command.Display,

@@ -1,6 +1,9 @@
 package ui
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/atotto/clipboard"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -26,6 +29,27 @@ type sessionsMsg struct {
 
 // opDoneMsg は変更系操作の完了。
 type opDoneMsg struct{ err error }
+
+// captureDoneMsg は画面コピー操作の完了。
+type captureDoneMsg struct {
+	lines int
+	err   error
+}
+
+// seam（テストで差し替え可能）。
+var (
+	captureRunner  = runCapture
+	clipboardWrite = clipboard.WriteAll
+)
+
+// countLines はキャプチャ文字列の行数を返す（末尾改行は無視）。
+func countLines(out string) int {
+	s := strings.TrimRight(out, "\n")
+	if s == "" {
+		return 0
+	}
+	return strings.Count(s, "\n") + 1
+}
 
 // Model は navmux の TUI 状態。
 type Model struct {
@@ -123,6 +147,18 @@ func (m Model) runMenuItem() (tea.Model, tea.Cmd) {
 			_, err := runCommand(c)
 			return opDoneMsg{err: err}
 		}
+	case kindCapture:
+		c := it.command
+		return m, func() tea.Msg {
+			out, err := captureRunner(c)
+			if err != nil {
+				return captureDoneMsg{err: err}
+			}
+			if werr := clipboardWrite(out); werr != nil {
+				return captureDoneMsg{err: werr}
+			}
+			return captureDoneMsg{lines: countLines(out)}
+		}
 	case kindAction:
 		switch it.act {
 		case action.Attach:
@@ -165,6 +201,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.status = "完了"
 		}
 		return m, m.refresh()
+
+	case captureDoneMsg:
+		if msg.err != nil {
+			m.status = "コピー失敗: " + msg.err.Error()
+		} else {
+			m.status = fmt.Sprintf("%d 行コピーしました", msg.lines)
+		}
+		return m, nil
 
 	case tea.KeyMsg:
 		return m.handleKey(msg)

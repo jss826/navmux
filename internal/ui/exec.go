@@ -9,6 +9,15 @@ import (
 	"github.com/jss826/navmux/internal/backend"
 )
 
+// runCapture は stdout のみを取得する（画面ダンプのコピー用）。
+func runCapture(c backend.Command) (string, error) {
+	if len(c.Argv) == 0 {
+		return "", nil
+	}
+	out, err := exec.Command(c.Argv[0], c.Argv[1:]...).Output()
+	return string(out), err
+}
+
 // runCommand は非対話コマンド（new/rename/kill/switch）を実行し結合出力を返す。
 func runCommand(c backend.Command) (string, error) {
 	if len(c.Argv) == 0 {

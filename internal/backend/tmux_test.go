@@ -110,6 +110,30 @@ func TestTmuxSessionOpsHasDetachOthers(t *testing.T) {
 	}
 }
 
+func TestTmuxCaptureOps(t *testing.T) {
+	ops := NewTmux().SessionOps(Session{Name: "foo"})
+	want := map[string]bool{
+		"tmux capture-pane -t foo -p":      false,
+		"tmux capture-pane -t foo -p -S -": false,
+	}
+	for _, op := range ops {
+		if _, ok := want[op.Command.Display]; ok {
+			want[op.Command.Display] = true
+			if !op.Capture {
+				t.Fatalf("capture op の Capture=false: %q", op.Command.Display)
+			}
+			if !op.Enabled {
+				t.Fatalf("選択ありで capture が無効: %q", op.Command.Display)
+			}
+		}
+	}
+	for disp, seen := range want {
+		if !seen {
+			t.Fatalf("capture op が無い: %q", disp)
+		}
+	}
+}
+
 var errFake = errorsNew("exit status 1")
 
 func errorsNew(s string) error { return &fakeErr{s} }

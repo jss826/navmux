@@ -83,6 +83,27 @@ func TestZellijSessionOps(t *testing.T) {
 	}
 }
 
+func TestZellijCaptureOps(t *testing.T) {
+	ops := NewZellij().SessionOps(Session{Name: "foo"})
+	want := map[string]bool{
+		"zellij -s foo action dump-screen":    false,
+		"zellij -s foo action dump-screen -f": false,
+	}
+	for _, op := range ops {
+		if _, ok := want[op.Command.Display]; ok {
+			want[op.Command.Display] = true
+			if !op.Capture {
+				t.Fatalf("capture op の Capture=false: %q", op.Command.Display)
+			}
+		}
+	}
+	for disp, seen := range want {
+		if !seen {
+			t.Fatalf("capture op が無い: %q", disp)
+		}
+	}
+}
+
 func TestZellijSessionOpsDetachOthersIsHint(t *testing.T) {
 	ops := NewZellij().SessionOps(Session{Name: "foo"})
 	found := false

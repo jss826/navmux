@@ -59,6 +59,8 @@ func (z *Zellij) SessionOps(s Session) []OpPreset {
 		{Label: "次タブ", Command: cmd(zellijBin, "-s", n, "action", "go-to-next-tab"), Enabled: en},
 		{Label: "閉じる", Command: cmd(zellijBin, "-s", n, "action", "close-pane"), Enabled: en},
 		{Label: "他クライアント切断  Ctrl o w Ctrl x", Command: Command{Display: "Ctrl o w Ctrl x（手動）"}, Enabled: false},
+		{Label: "画面コピー", Command: cmd(zellijBin, "-s", n, "action", "dump-screen"), Enabled: en, Capture: true},
+		{Label: "全履歴コピー", Command: cmd(zellijBin, "-s", n, "action", "dump-screen", "-f"), Enabled: en, Capture: true},
 	}
 }
 

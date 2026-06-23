@@ -28,6 +28,7 @@ type OpPreset struct {
 	Label   string  // 例 "分割(縦)"
 	Command Command // 実行/表示用
 	Enabled bool    // false ならグレーアウト（実行不可）
+	Capture bool    // true なら stdout を取得してクリップボードに入れる操作
 }
 
 // Backend は multiplexer の抽象。変更系は実行せずコマンドを返す。

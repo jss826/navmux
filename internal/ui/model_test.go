@@ -79,6 +79,61 @@ func TestViewExplainOutOfRangeMenuCursorNoPanic(t *testing.T) {
 	_ = m.View()        // panic しなければ成功
 }
 
+func TestCaptureCopiesAndCountsLines(t *testing.T) {
+	oldClip, oldCap := clipboardWrite, captureRunner
+	defer func() { clipboardWrite, captureRunner = oldClip, oldCap }()
+
+	var copied string
+	clipboardWrite = func(s string) error { copied = s; return nil }
+	captureRunner = func(c backend.Command) (string, error) { return "a\nb\nc\n", nil }
+
+	m := New([]backend.Backend{backend.NewZellij()}, "")
+	m.sessions = []backend.Session{{Name: "navmux"}}
+	m.focus = 1
+
+	items := m.menu()
+	idx := -1
+	for i, it := range items {
+		if it.kind == kindCapture {
+			idx = i
+			break
+		}
+	}
+	if idx < 0 {
+		t.Fatal("kindCapture 項目が無い")
+	}
+	m.menuCursor = idx
+
+	_, cmd := m.runMenuItem()
+	if cmd == nil {
+		t.Fatal("capture 実行で cmd が nil")
+	}
+	next, _ := m.Update(cmd())
+	m = next.(Model)
+
+	if copied != "a\nb\nc\n" {
+		t.Fatalf("クリップボード = %q", copied)
+	}
+	if m.status != "3 行コピーしました" {
+		t.Fatalf("status = %q", m.status)
+	}
+}
+
+func TestCountLines(t *testing.T) {
+	cases := map[string]int{
+		"":        0,
+		"\n":      0,
+		"x":       1,
+		"a\nb\n":  2,
+		"a\nb\nc": 3,
+	}
+	for in, want := range cases {
+		if got := countLines(in); got != want {
+			t.Fatalf("countLines(%q) = %d want %d", in, got, want)
+		}
+	}
+}
+
 func TestCopyNoSessionListPane(t *testing.T) {
 	// セッションなし・focus=0（左ペイン）で y を押すと不正コマンドをコピーしない
 	m := New([]backend.Backend{backend.NewTmux()}, "")

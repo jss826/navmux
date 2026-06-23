@@ -58,6 +58,8 @@ func (t *Tmux) SessionOps(s Session) []OpPreset {
 		{Label: "次ウィンドウ", Command: cmd(tmuxBin, "next-window", "-t", n), Enabled: en},
 		{Label: "閉じる", Command: cmd(tmuxBin, "kill-window", "-t", n), Enabled: en},
 		{Label: "他クライアント切断", Command: cmd(tmuxBin, "detach-client", "-a", "-t", n), Enabled: en},
+		{Label: "画面コピー", Command: cmd(tmuxBin, "capture-pane", "-t", n, "-p"), Enabled: en, Capture: true},
+		{Label: "全履歴コピー", Command: cmd(tmuxBin, "capture-pane", "-t", n, "-p", "-S", "-"), Enabled: en, Capture: true},
 	}
 }
 
