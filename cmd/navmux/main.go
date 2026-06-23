@@ -13,6 +13,7 @@ import (
 	"github.com/jss826/navmux/internal/backend"
 	"github.com/jss826/navmux/internal/env"
 	"github.com/jss826/navmux/internal/ui"
+	"github.com/jss826/navmux/internal/upgrade"
 )
 
 func main() {
@@ -21,6 +22,15 @@ func main() {
 	if *showVersion {
 		bi, ok := debug.ReadBuildInfo()
 		fmt.Println(app.FormatVersion(bi, ok))
+		return
+	}
+
+	if flag.Arg(0) == "upgrade" {
+		bi, ok := debug.ReadBuildInfo()
+		if err := upgrade.NewRunner(app.Version(bi, ok)).Run(); err != nil {
+			fmt.Fprintln(os.Stderr, "navmux upgrade:", err)
+			os.Exit(1)
+		}
 		return
 	}
 
