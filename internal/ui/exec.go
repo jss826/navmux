@@ -24,3 +24,13 @@ func execCommand(c backend.Command) *exec.Cmd {
 	cmd.Stderr = os.Stderr
 	return cmd
 }
+
+// containsSession は name のセッションが一覧に存在するか返す。
+func containsSession(sessions []backend.Session, name string) bool {
+	for _, s := range sessions {
+		if s.Name == name {
+			return true
+		}
+	}
+	return false
+}
