@@ -143,10 +143,10 @@ func TestCopyNoSessionListPane(t *testing.T) {
 	}
 }
 
-func TestF5Refreshes(t *testing.T) {
+func TestURefreshes(t *testing.T) {
 	m := New([]backend.Backend{backend.NewTmux()}, "")
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyF5})
+	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'u'}})
 	if cmd == nil {
-		t.Fatal("F5 で refresh cmd が返らない")
+		t.Fatal("u で refresh cmd が返らない")
 	}
 }

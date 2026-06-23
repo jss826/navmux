@@ -256,7 +256,7 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.quitting = true
 		return m, tea.Quit
 
-	case "f5":
+	case "u":
 		return m, m.refresh()
 
 	case "tab":

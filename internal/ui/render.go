@@ -34,23 +34,21 @@ func RenderList(sessions []backend.Session, cursor int) string {
 	return b.String()
 }
 
-// RenderFooter はアクションをキー併記で 1 行に並べ、実行可否で表示を変える。
-//
-//	実行可 → "key label" / 状態的に不可 → "(key label ×)" / 構造的に非対応 → "(key label=非対応)"
+// RenderFooter はアクションをキー併記で 1 行に並べ、実行可否を色で示す。
+// 実行可 → 色付き / 実行不可（状態的・構造的どちらも） → 減光（グレーアウト）。記号は使わない。
 func RenderFooter(actions []action.Action, b backend.Backend, name string) string {
 	var parts []string
 	for _, a := range actions {
-		if a.Kind == action.Rename && !b.CanRename() {
-			parts = append(parts, fmt.Sprintf("(%s %s=非対応)", a.Key, a.Label))
-			continue
-		}
+		label := fmt.Sprintf("%s %s", a.Key, a.Label)
 		if action.Runnable(b, a.Kind, name) {
-			parts = append(parts, fmt.Sprintf("%s %s", a.Key, a.Label))
+			parts = append(parts, runnableStyle.Render(label))
 		} else {
-			parts = append(parts, fmt.Sprintf("(%s %s ×)", a.Key, a.Label))
+			parts = append(parts, faintStyle.Render(label))
 		}
 	}
-	parts = append(parts, "←→ ペイン移動", "y コピー", "F5 更新", "? 解説", "tab tmux/zellij", "q 終了")
+	for _, h := range []string{"←→ ペイン移動", "y コピー", "u 更新", "? 解説", "tab tmux/zellij", "q 終了"} {
+		parts = append(parts, faintStyle.Render(h))
+	}
 	return strings.Join(parts, "   ")
 }
 
@@ -68,7 +66,7 @@ func RenderMenu(items []menuItem, cur int, focused bool) string {
 		}
 		label := it.label
 		if !it.enabled {
-			label += " (×)"
+			label = faintStyle.Render(label) // 実行不可は減光（× 記号は使わない）
 		}
 		fmt.Fprintf(&b, "%s %s\n", mark, label)
 	}

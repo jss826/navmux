@@ -4,6 +4,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/charmbracelet/lipgloss"
+	"github.com/muesli/termenv"
+
 	"github.com/jss826/navmux/internal/action"
 	"github.com/jss826/navmux/internal/backend"
 )
@@ -24,7 +27,7 @@ func TestRenderListMarksCursorAndState(t *testing.T) {
 }
 
 func TestRenderFooterShowsKeys(t *testing.T) {
-	// tmux + 選択あり → 全アクション実行可（× や 非対応 が付かない）
+	// tmux + 選択あり → 全アクション実行可。記号(× / 非対応)は出ない。
 	out := RenderFooter(action.All(), backend.NewTmux(), "main")
 	for _, want := range []string{"enter", "アタッチ", "n", "d"} {
 		if !strings.Contains(out, want) {
@@ -32,28 +35,42 @@ func TestRenderFooterShowsKeys(t *testing.T) {
 		}
 	}
 	if strings.Contains(out, "×") || strings.Contains(out, "非対応") {
-		t.Fatalf("選択ありでは不可マークが出ないはず: %q", out)
+		t.Fatalf("記号方式は廃止のはず: %q", out)
 	}
 }
 
-func TestRenderFooterGreysRenameWhenUnsupported(t *testing.T) {
-	out := RenderFooter(action.All(), backend.NewZellij(), "main")
-	if !strings.Contains(out, "非対応") {
-		t.Fatalf("リネーム非対応の目印が無い: %q", out)
+// 実行可否で footer のスタイル（色/減光）が変わり、記号は使わない。
+func TestRenderFooterStylesRunnableVsDisabled(t *testing.T) {
+	old := lipgloss.ColorProfile()
+	lipgloss.SetColorProfile(termenv.TrueColor)
+	defer lipgloss.SetColorProfile(old)
+
+	runnable := RenderFooter(action.All(), backend.NewTmux(), "main") // 全可
+	disabled := RenderFooter(action.All(), backend.NewTmux(), "")     // attach/rename/kill 不可
+	if runnable == disabled {
+		t.Fatal("実行可否で footer のスタイルが変わっていない")
+	}
+	if strings.Contains(disabled, "×") || strings.Contains(disabled, "非対応") {
+		t.Fatalf("記号方式(× / 非対応)が残っている: %q", disabled)
+	}
+	if !strings.Contains(disabled, "アタッチ") {
+		t.Fatalf("ラベルが欠落: %q", disabled)
 	}
 }
 
-func TestRenderFooterMarksUnavailable(t *testing.T) {
-	// tmux + 選択なし → アタッチ/削除は (×)、新規は通常表示
-	out := RenderFooter(action.All(), backend.NewTmux(), "")
-	if !strings.Contains(out, "(enter アタッチ ×)") {
-		t.Fatalf("未選択でアタッチに × が付かない: %q", out)
+// zellij の rename 非対応は減光で示す（tmux の rename 可とスタイルが異なる）。
+func TestRenderFooterFaintsZellijRename(t *testing.T) {
+	old := lipgloss.ColorProfile()
+	lipgloss.SetColorProfile(termenv.TrueColor)
+	defer lipgloss.SetColorProfile(old)
+
+	zj := RenderFooter(action.All(), backend.NewZellij(), "main")
+	tm := RenderFooter(action.All(), backend.NewTmux(), "main")
+	if zj == tm {
+		t.Fatal("zellij(rename不可) と tmux(rename可) で footer スタイルが同一")
 	}
-	if !strings.Contains(out, "(d 削除 ×)") {
-		t.Fatalf("未選択で削除に × が付かない: %q", out)
-	}
-	if strings.Contains(out, "(n 新規 ×)") {
-		t.Fatalf("新規に × が付いている: %q", out)
+	if strings.Contains(zj, "非対応") || strings.Contains(zj, "×") {
+		t.Fatalf("記号が残っている: %q", zj)
 	}
 }
 
@@ -67,8 +84,8 @@ func TestRenderExplainShowsCommand(t *testing.T) {
 
 func TestRenderFooterShowsRefresh(t *testing.T) {
 	out := RenderFooter(action.All(), backend.NewTmux(), "main")
-	if !strings.Contains(out, "F5 更新") {
-		t.Fatalf("footer に F5 更新 が無い: %q", out)
+	if !strings.Contains(out, "u 更新") {
+		t.Fatalf("footer に u 更新 が無い: %q", out)
 	}
 }
 
@@ -84,8 +101,8 @@ func TestRenderMenuMarksCursorAndDisabled(t *testing.T) {
 	if !strings.HasPrefix(strings.TrimSpace(lines[0]), ">") {
 		t.Fatalf("focus 時のカーソル行頭 > が無い: %q", lines[0])
 	}
-	if !strings.Contains(lines[1], "×") {
-		t.Fatalf("無効項目の目印 × が無い: %q", lines[1])
+	if strings.Contains(out, "×") {
+		t.Fatalf("× 記号は廃止のはず: %q", out)
 	}
 	if !strings.Contains(lines[2], "操作") {
 		t.Fatalf("区切りが描画されない: %q", lines[2])
@@ -93,5 +110,18 @@ func TestRenderMenuMarksCursorAndDisabled(t *testing.T) {
 	// 非フォーカス時はカーソル > を出さない
 	if strings.Contains(RenderMenu(items, 0, false), ">") {
 		t.Fatal("非フォーカスで > が出ている")
+	}
+}
+
+// 無効なメニュー項目は減光で示す（有効項目とスタイルが異なる）。
+func TestRenderMenuFaintsDisabled(t *testing.T) {
+	old := lipgloss.ColorProfile()
+	lipgloss.SetColorProfile(termenv.TrueColor)
+	defer lipgloss.SetColorProfile(old)
+
+	en := RenderMenu([]menuItem{{kind: kindAction, label: "リネーム", enabled: true}}, -1, false)
+	dis := RenderMenu([]menuItem{{kind: kindAction, label: "リネーム", enabled: false}}, -1, false)
+	if en == dis {
+		t.Fatal("enabled/disabled でメニュー行スタイルが変わっていない")
 	}
 }

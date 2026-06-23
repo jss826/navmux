@@ -7,7 +7,8 @@ var (
 	activePaneStyle = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).Padding(0, 1).BorderForeground(lipgloss.Color("14"))
 	titleStyle      = lipgloss.NewStyle().Bold(true)
 	execStyle       = lipgloss.NewStyle().Faint(true)
-	footerHint      = lipgloss.NewStyle().Faint(true)
+	runnableStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("14")) // 実行可: シアン
+	faintStyle      = lipgloss.NewStyle().Faint(true)                      // 実行不可・ヒント: 減光（グレーアウト）
 )
 
 // styleDashboard は純コンテンツ（list/menu 等）を受け取り、枠付き 2 ペインに整形する。
@@ -23,9 +24,10 @@ func styleDashboard(title, list, menu, execLine, footer, status string, focus in
 	left := leftStyle.Render("Sessions\n" + list)
 	right := rightStyle.Render("Actions\n" + menu)
 	body := lipgloss.JoinHorizontal(lipgloss.Top, left, " ", right)
+	// footer は RenderFooter 側で項目ごとに装飾済み（可=色 / 不可=減光）。ここでは包まない。
 	out := titleStyle.Render(title) + "\n" + body + "\n" +
 		execStyle.Render("実行: "+execLine) + "\n" +
-		footerHint.Render(footer)
+		footer
 	if status != "" {
 		out += "\n" + status
 	}

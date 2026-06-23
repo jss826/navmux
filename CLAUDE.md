@@ -102,7 +102,7 @@ go vet ./...      # 警告なし
 
 - **設計フェーズ**: コマンドに触れる変更は「コマンド対応表」を先に更新し、実装の `Display` 文字列と厳密一致させる。
 - **レビュー観点**: 上記「zellij 0.44.3 の制約」を破っていないか確認する。
-- **MVP 制約**: プレーン文字列描画を維持（lipgloss の ANSI 装飾は MVP 後）。テストが substring 一致のため。
+- **装飾方針**: 純コンテンツ層（`RenderList`）はプレーン維持。`RenderFooter` / `RenderMenu` は実行可否を **色（可＝シアン）/ 減光（不可）** で示す（× や =非対応 の記号は使わない）。装飾検証テストは `lipgloss.SetColorProfile(termenv.TrueColor)` を強制し defer で復元（substring はラベルに対して引き続き有効）。枠/2ペインは `styleDashboard`。
 
 ## 技術スタック
 
