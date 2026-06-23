@@ -1,8 +1,10 @@
 package ui
 
 import (
+	"errors"
 	"os"
 	"os/exec"
+	"time"
 
 	"github.com/jss826/navmux/internal/backend"
 )
@@ -33,4 +35,22 @@ func containsSession(sessions []backend.Session, name string) bool {
 		}
 	}
 	return false
+}
+
+// errNotCreated は生成コマンドが exit 0 でも実在確認に失敗したときに返す。
+var errNotCreated = errors.New("作成に失敗した可能性があります（一覧に現れませんでした）")
+
+// newSession はセッション生成を spawnDetached で実行し、List() に現れるまで
+// 短くポーリングして実在を確認する。exit 0 を信用しない。
+func newSession(b backend.Backend, c backend.Command, name string) error {
+	if err := spawnDetached(c); err != nil {
+		return err
+	}
+	for i := 0; i < 15; i++ {
+		if ss, err := b.List(); err == nil && containsSession(ss, name) {
+			return nil
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
+	return errNotCreated
 }

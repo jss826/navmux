@@ -193,7 +193,7 @@ func (m Model) runOp(k action.Kind, arg string) tea.Cmd {
 		var c backend.Command
 		switch k {
 		case action.New:
-			c = b.NewCmd(arg)
+			return opDoneMsg{err: newSession(b, b.NewCmd(arg), arg)}
 		case action.Rename:
 			rc, ok := b.RenameCmd(sel, arg)
 			if !ok {
