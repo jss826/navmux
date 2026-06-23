@@ -323,12 +323,13 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 // runOp は変更系操作を tea.Cmd 化する（New/Rename/Kill）。
 func (m Model) runOp(k action.Kind, arg string) tea.Cmd {
 	b := m.ActiveBackend()
+	if k == action.New {
+		return m.newSessionCmd(b, arg)
+	}
 	sel := m.selectedName()
 	return func() tea.Msg {
 		var c backend.Command
 		switch k {
-		case action.New:
-			return opDoneMsg{err: newSession(b, b.NewCmd(arg), arg)}
 		case action.Rename:
 			rc, ok := b.RenameCmd(sel, arg)
 			if !ok {
@@ -343,6 +344,21 @@ func (m Model) runOp(k action.Kind, arg string) tea.Cmd {
 		_, err := runCommand(c)
 		return opDoneMsg{err: err}
 	}
+}
+
+// newSessionCmd は新規セッションを実端末で生成する。detached 生成（例 zellij attach -b）は
+// 実コンソールが無いと server が永続しないため、attach と同様に TUI を一時停止して端末を渡す。
+// （hidden 新コンソールへ投げる旧 spawnDetached 方式では server が使い捨てコンソールに紐づき、
+// 生成コマンド終了とともに死ぬ＝navmux 経由のセッションが永続しなかった原因。）
+// exit 0 を信用せず confirmCreated で実在も確認する。
+func (m Model) newSessionCmd(b backend.Backend, name string) tea.Cmd {
+	c := execCommand(b.NewCmd(name))
+	return tea.ExecProcess(c, func(err error) tea.Msg {
+		if err != nil {
+			return opDoneMsg{err: err}
+		}
+		return opDoneMsg{err: confirmCreated(b, name)}
+	})
 }
 
 // attachSelected はアタッチを実行する。外からは tea.ExecProcess で端末を渡す。

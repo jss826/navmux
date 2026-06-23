@@ -49,12 +49,9 @@ func containsSession(sessions []backend.Session, name string) bool {
 // errNotCreated は生成コマンドが exit 0 でも実在確認に失敗したときに返す。
 var errNotCreated = errors.New("作成に失敗した可能性があります（一覧に現れませんでした）")
 
-// newSession はセッション生成を spawnDetached で実行し、List() に現れるまで
-// 短くポーリングして実在を確認する。exit 0 を信用しない。
-func newSession(b backend.Backend, c backend.Command, name string) error {
-	if err := spawnDetached(c); err != nil {
-		return err
-	}
+// confirmCreated は name のセッションが List() に現れるまで短くポーリングして
+// 実在を確認する。生成コマンドの exit 0 を信用しない。
+func confirmCreated(b backend.Backend, name string) error {
 	for i := 0; i < 15; i++ {
 		if ss, err := b.List(); err == nil && containsSession(ss, name) {
 			return nil
