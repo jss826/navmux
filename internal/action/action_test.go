@@ -43,3 +43,30 @@ func TestAllHasKeysAndExplain(t *testing.T) {
 		}
 	}
 }
+
+func TestRunnable(t *testing.T) {
+	tx := backend.NewTmux()  // CanRename() == true
+	z := backend.NewZellij() // CanRename() == false
+
+	cases := []struct {
+		name string
+		b    backend.Backend
+		k    Kind
+		sel  string
+		want bool
+	}{
+		{"new は常に可(選択なし)", tx, New, "", true},
+		{"attach は選択必要", tx, Attach, "", false},
+		{"attach 選択あり", tx, Attach, "foo", true},
+		{"kill は選択必要", tx, Kill, "", false},
+		{"kill 選択あり", tx, Kill, "foo", true},
+		{"rename tmux 選択あり", tx, Rename, "foo", true},
+		{"rename tmux 選択なし", tx, Rename, "", false},
+		{"rename zellij は不可", z, Rename, "foo", false},
+	}
+	for _, c := range cases {
+		if got := Runnable(c.b, c.k, c.sel); got != c.want {
+			t.Fatalf("%s: Runnable = %v want %v", c.name, got, c.want)
+		}
+	}
+}

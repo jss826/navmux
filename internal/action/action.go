@@ -49,3 +49,16 @@ func CommandFor(b backend.Backend, k Kind, name, newName string) (string, bool) 
 	}
 	return "", false
 }
+
+// Runnable はそのアクションが今この瞬間に実行可能かを返す（フッター/メニュー共通）。
+func Runnable(b backend.Backend, k Kind, name string) bool {
+	switch k {
+	case New:
+		return true
+	case Attach, Kill:
+		return name != ""
+	case Rename:
+		return b.CanRename() && name != ""
+	}
+	return false
+}
