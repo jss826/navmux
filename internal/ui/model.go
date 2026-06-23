@@ -356,18 +356,24 @@ func (m Model) View() string {
 	if m.quitting {
 		return ""
 	}
-	out := "navmux — " + m.ActiveBackend().Name() + "\n\n"
-	out += RenderList(m.sessions, m.cursor) + "\n"
-
-	// 右ペインメニュー
 	items := m.menu()
-	out += RenderMenu(items, m.menuCursor, m.focus == 1) + "\n"
+	title := "navmux — " + m.ActiveBackend().Name()
+	// 土台（タイトル/2ペイン/実行行/フッター/status）は装飾層 styleDashboard で組む。
+	// 純コンテンツ層（RenderList/RenderMenu/currentDisplay/RenderFooter）はプレーンのまま渡す。
+	out := styleDashboard(
+		title,
+		RenderList(m.sessions, m.cursor),
+		RenderMenu(items, m.menuCursor, m.focus == 1),
+		currentDisplay(items, m.menuCursor),
+		RenderFooter(action.All(), m.ActiveBackend().CanRename()),
+		m.status,
+	)
 
 	if m.mode == modePrompt {
-		out += "\n名前: " + m.input.View() + "\n(enter 確定 / esc キャンセル)\n"
+		out += "\n名前: " + m.input.View() + "\n(enter 確定 / esc キャンセル)"
 	}
 	if m.mode == modeConfirm {
-		out += "\n削除しますか? " + m.selectedName() + " [y/N]\n"
+		out += "\n削除しますか? " + m.selectedName() + " [y/N]"
 	}
 	if m.showExplain {
 		// カーソル項目（左ペイン=アタッチ、右ペイン=メニュー項目）に連動した解説
@@ -381,11 +387,7 @@ func (m Model) View() string {
 			explainDisp, _ = action.CommandFor(m.ActiveBackend(), action.Attach, m.selectedName(), "")
 		}
 		a := action.Action{Key: "?", Label: explainLabel}
-		out += "\n" + RenderExplain(a, explainDisp) + "\n"
-	}
-	out += "\n" + RenderFooter(action.All(), m.ActiveBackend().CanRename()) + "\n"
-	if m.status != "" {
-		out += "\n" + m.status + "\n"
+		out += "\n" + RenderExplain(a, explainDisp)
 	}
 	return out
 }

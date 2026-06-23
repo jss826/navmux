@@ -44,7 +44,7 @@ func RenderFooter(actions []action.Action, canRename bool) string {
 		}
 		parts = append(parts, fmt.Sprintf("%s %s", a.Key, a.Label))
 	}
-	parts = append(parts, "? 解説", "tab tmux/zellij", "q 終了")
+	parts = append(parts, "←→ ペイン移動", "y コピー", "? 解説", "tab tmux/zellij", "q 終了")
 	return strings.Join(parts, "   ")
 }
 
