@@ -34,15 +34,21 @@ func RenderList(sessions []backend.Session, cursor int) string {
 	return b.String()
 }
 
-// RenderFooter はアクションをキー併記で 1 行に並べる。
-func RenderFooter(actions []action.Action, canRename bool) string {
+// RenderFooter はアクションをキー併記で 1 行に並べ、実行可否で表示を変える。
+//
+//	実行可 → "key label" / 状態的に不可 → "(key label ×)" / 構造的に非対応 → "(key label=非対応)"
+func RenderFooter(actions []action.Action, b backend.Backend, name string) string {
 	var parts []string
 	for _, a := range actions {
-		if a.Kind == action.Rename && !canRename {
+		if a.Kind == action.Rename && !b.CanRename() {
 			parts = append(parts, fmt.Sprintf("(%s %s=非対応)", a.Key, a.Label))
 			continue
 		}
-		parts = append(parts, fmt.Sprintf("%s %s", a.Key, a.Label))
+		if action.Runnable(b, a.Kind, name) {
+			parts = append(parts, fmt.Sprintf("%s %s", a.Key, a.Label))
+		} else {
+			parts = append(parts, fmt.Sprintf("(%s %s ×)", a.Key, a.Label))
+		}
 	}
 	parts = append(parts, "←→ ペイン移動", "y コピー", "? 解説", "tab tmux/zellij", "q 終了")
 	return strings.Join(parts, "   ")

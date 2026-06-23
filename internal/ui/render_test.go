@@ -24,18 +24,36 @@ func TestRenderListMarksCursorAndState(t *testing.T) {
 }
 
 func TestRenderFooterShowsKeys(t *testing.T) {
-	out := RenderFooter(action.All(), true)
+	// tmux + 選択あり → 全アクション実行可（× や 非対応 が付かない）
+	out := RenderFooter(action.All(), backend.NewTmux(), "main")
 	for _, want := range []string{"enter", "アタッチ", "n", "d"} {
 		if !strings.Contains(out, want) {
 			t.Fatalf("footer に %q が無い: %q", want, out)
 		}
 	}
+	if strings.Contains(out, "×") || strings.Contains(out, "非対応") {
+		t.Fatalf("選択ありでは不可マークが出ないはず: %q", out)
+	}
 }
 
 func TestRenderFooterGreysRenameWhenUnsupported(t *testing.T) {
-	out := RenderFooter(action.All(), false)
+	out := RenderFooter(action.All(), backend.NewZellij(), "main")
 	if !strings.Contains(out, "非対応") {
 		t.Fatalf("リネーム非対応の目印が無い: %q", out)
+	}
+}
+
+func TestRenderFooterMarksUnavailable(t *testing.T) {
+	// tmux + 選択なし → アタッチ/削除は (×)、新規は通常表示
+	out := RenderFooter(action.All(), backend.NewTmux(), "")
+	if !strings.Contains(out, "(enter アタッチ ×)") {
+		t.Fatalf("未選択でアタッチに × が付かない: %q", out)
+	}
+	if !strings.Contains(out, "(d 削除 ×)") {
+		t.Fatalf("未選択で削除に × が付かない: %q", out)
+	}
+	if strings.Contains(out, "(n 新規 ×)") {
+		t.Fatalf("新規に × が付いている: %q", out)
 	}
 }
 

@@ -365,7 +365,7 @@ func (m Model) View() string {
 		RenderList(m.sessions, m.cursor),
 		RenderMenu(items, m.menuCursor, m.focus == 1),
 		currentDisplay(items, m.menuCursor),
-		RenderFooter(action.All(), m.ActiveBackend().CanRename()),
+		RenderFooter(action.All(), m.ActiveBackend(), m.selectedName()),
 		m.status,
 	)
 
