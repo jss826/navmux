@@ -25,7 +25,11 @@ navmux のリリースを行う。引数 `$ARGUMENTS` にバージョン（例 `
    GOOS=windows GOARCH=amd64 go build -ldflags "-X github.com/jss826/navmux/internal/app.version=<ver>" -o dist/navmux_windows_amd64.exe ./cmd/navmux
    ```
    （PowerShell では `$env:GOOS="linux"; $env:GOARCH="amd64"; go build ...` の形に読み替える）
-5. **SHA256SUMS 生成**: `dist/` 内の全バイナリの SHA256 を `dist/SHA256SUMS` に `<hex>␣␣<basename>` 形式で出力（`navmux upgrade` の `checksumFor` が basename 一致で引く）。
+5. **SHA256SUMS 生成**: `dist/` 内の全バイナリの SHA256 を `dist/SHA256SUMS` に `<hex>␣␣<basename>` 形式で出力する。**必ず `dist/` の中で実行してパスを basename に保つ**（`navmux upgrade` の `checksumFor` は basename 一致で引くため、`dist/navmux_...` のようにパス前置されると全 upgrade が checksum 不一致で失敗する）:
+   ```
+   cd dist && sha256sum navmux_linux_amd64 navmux_linux_arm64 navmux_darwin_amd64 navmux_darwin_arm64 navmux_windows_amd64.exe > SHA256SUMS && cd ..
+   ```
+   （PowerShell では各ファイルに `Get-FileHash -Algorithm SHA256` を使い `<hex>␣␣<basename>` 形式で出力する。hex は小文字化する）
 6. **Release 作成**: `gh release create <ver> --generate-notes dist/navmux_linux_amd64 dist/navmux_linux_arm64 dist/navmux_darwin_amd64 dist/navmux_darwin_arm64 dist/navmux_windows_amd64.exe dist/SHA256SUMS`
 7. **security-review**: 本リリースに upgrade 関連の差分が含まれる場合は `/security-review` を実施して報告する。
 8. `dist/` は成果物なので `.gitignore` に含まれていることを確認（無ければ追加）。
