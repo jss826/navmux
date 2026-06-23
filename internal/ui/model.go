@@ -367,6 +367,7 @@ func (m Model) View() string {
 		currentDisplay(items, m.menuCursor),
 		RenderFooter(action.All(), m.ActiveBackend(), m.selectedName()),
 		m.status,
+		m.focus,
 	)
 
 	if m.mode == modePrompt {
