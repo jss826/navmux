@@ -58,6 +58,7 @@ func (z *Zellij) SessionOps(s Session) []OpPreset {
 		{Label: "分割(横)", Command: cmd(zellijBin, "-s", n, "action", "new-pane", "-d", "down"), Enabled: en},
 		{Label: "次タブ", Command: cmd(zellijBin, "-s", n, "action", "go-to-next-tab"), Enabled: en},
 		{Label: "閉じる", Command: cmd(zellijBin, "-s", n, "action", "close-pane"), Enabled: en},
+		{Label: "他クライアント切断  Ctrl o w Ctrl x", Command: Command{Display: "Ctrl o w Ctrl x（手動）"}, Enabled: false},
 	}
 }
 

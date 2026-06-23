@@ -22,7 +22,7 @@ func TestBuildMenuTmux(t *testing.T) {
 	if seps != 1 {
 		t.Fatalf("区切りの数 = %d want 1", seps)
 	}
-	// 操作（kindOp）が 5 つ含まれ display が埋まっている
+	// 操作（kindOp）が 6 つ含まれ display が埋まっている
 	ops := 0
 	for _, it := range items {
 		if it.kind == kindOp {
@@ -32,8 +32,8 @@ func TestBuildMenuTmux(t *testing.T) {
 			}
 		}
 	}
-	if ops != 5 {
-		t.Fatalf("op の数 = %d want 5", ops)
+	if ops != 6 {
+		t.Fatalf("op の数 = %d want 6", ops)
 	}
 }
 

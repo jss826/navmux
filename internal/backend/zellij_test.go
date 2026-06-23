@@ -2,6 +2,7 @@ package backend
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -79,5 +80,24 @@ func TestZellijSessionOps(t *testing.T) {
 		if o.Enabled {
 			t.Fatalf("EXITED で %s が有効になっている", o.Label)
 		}
+	}
+}
+
+func TestZellijSessionOpsDetachOthersIsHint(t *testing.T) {
+	ops := NewZellij().SessionOps(Session{Name: "foo"})
+	found := false
+	for _, op := range ops {
+		if strings.Contains(op.Label, "他クライアント切断") {
+			found = true
+			if op.Enabled {
+				t.Fatal("zellij は他クライアント切断 CLI 非対応のはず（Enabled=false）")
+			}
+			if !strings.Contains(op.Label, "Ctrl o w Ctrl x") {
+				t.Fatalf("キーヒントがラベルに無い: %q", op.Label)
+			}
+		}
+	}
+	if !found {
+		t.Fatalf("zellij に他クライアント切断 op が無い: %+v", ops)
 	}
 }

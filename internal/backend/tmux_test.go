@@ -94,6 +94,22 @@ func TestTmuxSessionOps(t *testing.T) {
 	}
 }
 
+func TestTmuxSessionOpsHasDetachOthers(t *testing.T) {
+	ops := NewTmux().SessionOps(Session{Name: "foo"})
+	found := false
+	for _, op := range ops {
+		if op.Command.Display == "tmux detach-client -a -t foo" {
+			found = true
+			if !op.Enabled {
+				t.Fatal("選択ありで他クライアント切断が無効")
+			}
+		}
+	}
+	if !found {
+		t.Fatalf("tmux に他クライアント切断 op が無い: %+v", ops)
+	}
+}
+
 var errFake = errorsNew("exit status 1")
 
 func errorsNew(s string) error { return &fakeErr{s} }
