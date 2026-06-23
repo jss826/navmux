@@ -2,6 +2,8 @@
 package upgrade
 
 import (
+	"bufio"
+	"bytes"
 	"encoding/json"
 	"strconv"
 	"strings"
@@ -93,4 +95,16 @@ func assetFor(assets []Asset, goos, goarch string) (Asset, bool) {
 		}
 	}
 	return Asset{}, false
+}
+
+// checksumFor は SHA256SUMS（"<hex>␣␣<name>" 行）から assetName の hex を引く。
+func checksumFor(sums []byte, assetName string) (string, bool) {
+	sc := bufio.NewScanner(bytes.NewReader(sums))
+	for sc.Scan() {
+		fields := strings.Fields(sc.Text())
+		if len(fields) == 2 && fields[1] == assetName {
+			return fields[0], true
+		}
+	}
+	return "", false
 }

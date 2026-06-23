@@ -66,3 +66,15 @@ func TestAssetFor(t *testing.T) {
 		t.Fatal("非存在 asset で ok=true")
 	}
 }
+
+func TestChecksumFor(t *testing.T) {
+	sums := []byte(
+		"aaaa1111  navmux_linux_amd64\n" +
+			"bbbb2222  navmux_windows_amd64.exe\n")
+	if h, ok := checksumFor(sums, "navmux_windows_amd64.exe"); !ok || h != "bbbb2222" {
+		t.Fatalf("windows hash: %q ok=%v", h, ok)
+	}
+	if _, ok := checksumFor(sums, "navmux_darwin_arm64"); ok {
+		t.Fatal("非存在で ok=true")
+	}
+}
