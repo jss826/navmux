@@ -1,0 +1,49 @@
+package ui
+
+import (
+	"github.com/jss826/navmux/internal/action"
+	"github.com/jss826/navmux/internal/backend"
+)
+
+type itemKind int
+
+const (
+	kindAction itemKind = iota // セッションアクション（attach/new/rename/kill）
+	kindOp                     // mux 操作
+	kindSep                    // 区切り（選択不可）
+)
+
+// menuItem は右ペインの 1 行。display は「実行:」行/コピーに使う。
+type menuItem struct {
+	kind    itemKind
+	label   string
+	act     action.Kind     // kind==kindAction のとき有効
+	command backend.Command // kind==kindOp のとき有効
+	display string
+	enabled bool
+}
+
+// buildMenu は選択中セッションに対する右ペインのメニューを組む（純関数）。
+func buildMenu(b backend.Backend, sel backend.Session) []menuItem {
+	name := sel.Name
+	items := []menuItem{
+		{kind: kindAction, act: action.Attach, label: "アタッチ", display: b.AttachCmd(name).Display, enabled: name != ""},
+		{kind: kindAction, act: action.New, label: "新規セッション", display: b.NewCmd("<name>").Display, enabled: true},
+		{kind: kindAction, act: action.Rename, label: "リネーム", enabled: b.CanRename() && name != ""},
+		{kind: kindAction, act: action.Kill, label: "削除", display: b.KillCmd(name).Display, enabled: name != ""},
+		{kind: kindSep, label: "── 操作 ──"},
+	}
+	if rc, ok := b.RenameCmd(name, "<new>"); ok {
+		items[2].display = rc.Display
+	}
+	for _, op := range b.SessionOps(sel) {
+		items = append(items, menuItem{
+			kind:    kindOp,
+			label:   op.Label,
+			command: op.Command,
+			display: op.Command.Display,
+			enabled: op.Enabled,
+		})
+	}
+	return items
+}
