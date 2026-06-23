@@ -2,6 +2,7 @@
 package upgrade
 
 import (
+	"encoding/json"
 	"strconv"
 	"strings"
 )
@@ -27,6 +28,37 @@ func parseSemver(s string) ([3]int, bool) {
 		out[i] = n
 	}
 	return out, true
+}
+
+// Asset は Release に添付された 1 ファイル。
+type Asset struct {
+	Name string
+	URL  string
+}
+
+// Release は GitHub の 1 リリース。
+type Release struct {
+	TagName string
+	Assets  []Asset
+}
+
+// parseLatest は GitHub API releases/latest の JSON を Release に変換する。
+func parseLatest(body []byte) (Release, error) {
+	var raw struct {
+		TagName string `json:"tag_name"`
+		Assets  []struct {
+			Name string `json:"name"`
+			URL  string `json:"browser_download_url"`
+		} `json:"assets"`
+	}
+	if err := json.Unmarshal(body, &raw); err != nil {
+		return Release{}, err
+	}
+	rel := Release{TagName: raw.TagName}
+	for _, a := range raw.Assets {
+		rel.Assets = append(rel.Assets, Asset{Name: a.Name, URL: a.URL})
+	}
+	return rel, nil
 }
 
 // isNewer は latest が current より新しいかを返す。
