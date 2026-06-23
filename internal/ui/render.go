@@ -48,6 +48,27 @@ func RenderFooter(actions []action.Action, canRename bool) string {
 	return strings.Join(parts, "   ")
 }
 
+// RenderMenu は右ペインのメニューを純テキストで描く。focused 時のみカーソル > を出す。
+func RenderMenu(items []menuItem, cur int, focused bool) string {
+	var b strings.Builder
+	for i, it := range items {
+		if it.kind == kindSep {
+			fmt.Fprintf(&b, "  %s\n", it.label)
+			continue
+		}
+		mark := " "
+		if focused && i == cur {
+			mark = ">"
+		}
+		label := it.label
+		if !it.enabled {
+			label += " (×)"
+		}
+		fmt.Fprintf(&b, "%s %s\n", mark, label)
+	}
+	return b.String()
+}
+
 // RenderExplain は解説と実コマンドを表示する。
 func RenderExplain(a action.Action, commandDisplay string) string {
 	var b strings.Builder

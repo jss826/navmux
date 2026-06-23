@@ -46,3 +46,27 @@ func TestRenderExplainShowsCommand(t *testing.T) {
 		t.Fatalf("解説/コマンドが欠落: %q", out)
 	}
 }
+
+func TestRenderMenuMarksCursorAndDisabled(t *testing.T) {
+	items := []menuItem{
+		{kind: kindAction, label: "アタッチ", enabled: true},
+		{kind: kindAction, label: "リネーム", enabled: false},
+		{kind: kindSep, label: "── 操作 ──"},
+		{kind: kindOp, label: "分割(縦)", enabled: true},
+	}
+	out := RenderMenu(items, 0, true)
+	lines := strings.Split(strings.TrimRight(out, "\n"), "\n")
+	if !strings.HasPrefix(strings.TrimSpace(lines[0]), ">") {
+		t.Fatalf("focus 時のカーソル行頭 > が無い: %q", lines[0])
+	}
+	if !strings.Contains(lines[1], "×") {
+		t.Fatalf("無効項目の目印 × が無い: %q", lines[1])
+	}
+	if !strings.Contains(lines[2], "操作") {
+		t.Fatalf("区切りが描画されない: %q", lines[2])
+	}
+	// 非フォーカス時はカーソル > を出さない
+	if strings.Contains(RenderMenu(items, 0, false), ">") {
+		t.Fatal("非フォーカスで > が出ている")
+	}
+}
