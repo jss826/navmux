@@ -840,6 +840,195 @@ git commit -m "docs: コマンド対応表に画面コピー/全履歴/他クラ
 
 ---
 
+## Task 7: F5 で一覧を手動リフレッシュ
+
+**Files:**
+- Modify: `internal/ui/model.go`（`handleKey` 通常モード）
+- Modify: `internal/ui/render.go`（フッター静的部に `F5 更新`）
+- Test: `internal/ui/model_test.go`, `internal/ui/render_test.go`
+
+**背景:** 現状は操作実行後（`opDoneMsg`）のみ自動 refresh し、navmux 外でのセッション増減/改名を拾わない。手動リフレッシュキーを足す。`m.refresh()` は既存（active backend の `List()` を呼ぶ `tea.Cmd` を返す）。
+
+**Interfaces:**
+- Consumes: 既存 `func (m Model) refresh() tea.Cmd`。
+- Produces: 通常モードで `F5` 押下 → `m.refresh()` を返す。
+
+- [ ] **Step 1: 失敗テストを書く**
+
+`internal/ui/model_test.go` に追記:
+
+```go
+func TestF5Refreshes(t *testing.T) {
+	m := New([]backend.Backend{backend.NewTmux()}, "")
+	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyF5})
+	if cmd == nil {
+		t.Fatal("F5 で refresh cmd が返らない")
+	}
+}
+```
+
+`internal/ui/render_test.go` に追記:
+
+```go
+func TestRenderFooterShowsRefresh(t *testing.T) {
+	out := RenderFooter(action.All(), backend.NewTmux(), "main")
+	if !strings.Contains(out, "F5 更新") {
+		t.Fatalf("footer に F5 更新 が無い: %q", out)
+	}
+}
+```
+
+- [ ] **Step 2: 失敗を確認**
+
+Run: `go test ./internal/ui/ -run "TestF5Refreshes|TestRenderFooterShowsRefresh"`
+Expected: FAIL（F5 が無反応で cmd==nil / footer に文字列なし）
+
+- [ ] **Step 3: handleKey に F5 を実装**
+
+`internal/ui/model.go` の `handleKey` 通常モードの `switch msg.String()` に追加（`case "tab":` の前あたり、`case "q", "ctrl+c":` の後）:
+
+```go
+	case "f5":
+		return m, m.refresh()
+```
+
+- [ ] **Step 4: フッターに F5 更新 を追加**
+
+`internal/ui/render.go` の `RenderFooter` の静的 append を更新（`"y コピー"` の後に `"F5 更新"` を挿入）:
+
+```go
+	parts = append(parts, "←→ ペイン移動", "y コピー", "F5 更新", "? 解説", "tab tmux/zellij", "q 終了")
+```
+
+- [ ] **Step 5: 緑を確認**
+
+Run: `go test ./internal/ui/`
+Expected: PASS
+
+- [ ] **Step 6: commit**
+
+```bash
+git add internal/ui/model.go internal/ui/render.go internal/ui/model_test.go internal/ui/render_test.go
+git commit -m "feat(ui): F5 で一覧を手動リフレッシュ"
+```
+
+---
+
+## Task 8: zellij リネームコマンドのヒント表示（実行は非対応のまま）
+
+**Files:**
+- Modify: `internal/backend/backend.go`（`Backend` interface に `RenameHintCmd`）
+- Modify: `internal/backend/tmux.go`, `internal/backend/zellij.go`
+- Modify: `internal/ui/menu.go`（rename 行の display を `RenameHintCmd` 由来に）
+- Test: `internal/backend/tmux_test.go`, `internal/backend/zellij_test.go`
+- Modify: `CLAUDE.md`（コマンド対応表の rename 行）
+
+**背景:** zellij は `zellij -s <name> action rename-session <new>` で alive セッションをリネーム可能だが、Windows のコンソールなし実行でハングするため **navmux からは実行しない**。代わりにコマンドを**表示・コピー可能なヒント**として出す（detach-others と同じ流儀）。実行可否（`CanRename()` / `action.Runnable`）は **false のまま**＝メニューの rename 行は無効・Enter で実行されない。
+
+**Interfaces:**
+- Produces: `RenameHintCmd(oldName, newName string) (Command, bool)` を `Backend` interface に追加。
+  - tmux: `RenameCmd` と同じ（`tmux rename-session -t <old> <new>`, true）。
+  - zellij: `zellij -s <old> action rename-session <new>`, true（表示専用ヒント）。
+- Consumes（menu）: rename 行の `display` を `RenameHintCmd` から取得。`enabled` は従来どおり `action.Runnable`（zellij は false）。
+
+- [ ] **Step 1: backend テストを書く（失敗）**
+
+`internal/backend/zellij_test.go` に追記:
+
+```go
+func TestZellijRenameHintCmd(t *testing.T) {
+	z := NewZellij()
+	// 実行は非対応のまま
+	if _, ok := z.RenameCmd("foo", "bar"); ok {
+		t.Fatal("zellij RenameCmd は実行非対応のはず")
+	}
+	// ヒントとしてコマンドは提示する
+	c, ok := z.RenameHintCmd("foo", "bar")
+	if !ok || c.Display != "zellij -s foo action rename-session bar" {
+		t.Fatalf("RenameHintCmd = %q,%v", c.Display, ok)
+	}
+}
+```
+
+`internal/backend/tmux_test.go` に追記:
+
+```go
+func TestTmuxRenameHintCmd(t *testing.T) {
+	c, ok := NewTmux().RenameHintCmd("foo", "bar")
+	if !ok || c.Display != "tmux rename-session -t foo bar" {
+		t.Fatalf("RenameHintCmd = %q,%v", c.Display, ok)
+	}
+}
+```
+
+- [ ] **Step 2: 失敗を確認**
+
+Run: `go test ./internal/backend/ -run RenameHint`
+Expected: FAIL（`RenameHintCmd` 未定義でコンパイルエラー）
+
+- [ ] **Step 3: interface にメソッド追加**
+
+`internal/backend/backend.go` の `Backend` interface の `RenameCmd` の次の行に追加:
+
+```go
+	RenameHintCmd(oldName, newName string) (Command, bool) // 表示専用（zellij も true）
+```
+
+- [ ] **Step 4: tmux 実装**
+
+`internal/backend/tmux.go` の `RenameCmd` の直後に追加:
+
+```go
+// RenameHintCmd は表示用。tmux は実行可能コマンドと同一。
+func (t *Tmux) RenameHintCmd(oldName, newName string) (Command, bool) {
+	return t.RenameCmd(oldName, newName)
+}
+```
+
+- [ ] **Step 5: zellij 実装**
+
+`internal/backend/zellij.go` の `RenameCmd` の直後に追加:
+
+```go
+// RenameHintCmd は表示専用。alive セッションは action rename-session で改名可能だが、
+// Windows のコンソールなし実行でハングするため navmux からは実行しない（提示のみ）。
+func (z *Zellij) RenameHintCmd(oldName, newName string) (Command, bool) {
+	return cmd(zellijBin, "-s", oldName, "action", "rename-session", newName), true
+}
+```
+
+- [ ] **Step 6: menu の rename display を更新**
+
+`internal/ui/menu.go` の `buildMenu` の `if rc, ok := b.RenameCmd(name, "<new>"); ok {` を `RenameHintCmd` に置換:
+
+```go
+	if rc, ok := b.RenameHintCmd(name, "<new>"); ok {
+		items[2].display = rc.Display
+	}
+```
+
+- [ ] **Step 7: 緑を確認**
+
+Run: `go test ./internal/backend/ ./internal/ui/`
+Expected: PASS
+
+- [ ] **Step 8: CLAUDE.md のコマンド対応表 rename 行を更新**
+
+`CLAUDE.md`「コマンド対応表（正本）」の `| リネーム |` 行の zellij 欄を更新:
+
+```markdown
+| リネーム | `tmux rename-session -t <old> <new>` | **実行非対応**（`RenameCmd` は false）。ただし alive 限定で `zellij -s <old> action rename-session <new>` を `RenameHintCmd` で**ヒント表示**（コピー可・navmux からは実行しない） |
+```
+
+- [ ] **Step 9: commit**
+
+```bash
+git add internal/backend/backend.go internal/backend/tmux.go internal/backend/zellij.go internal/ui/menu.go internal/backend/tmux_test.go internal/backend/zellij_test.go CLAUDE.md
+git commit -m "feat: zellij のリネームコマンドをヒント表示（実行は非対応のまま）"
+```
+
+---
+
 ## Self-Review（計画作成者によるチェック結果）
 
 **1. Spec coverage:**
