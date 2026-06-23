@@ -1,6 +1,9 @@
 package upgrade
 
-import "testing"
+import (
+	"io"
+	"testing"
+)
 
 func TestParseLatest(t *testing.T) {
 	body := []byte(`{
@@ -76,5 +79,67 @@ func TestChecksumFor(t *testing.T) {
 	}
 	if _, ok := checksumFor(sums, "navmux_darwin_arm64"); ok {
 		t.Fatal("非存在で ok=true")
+	}
+}
+
+// fakeHTTP は URL→body のマップで HTTPGet を差し替える。
+func fakeHTTP(m map[string][]byte) func(string) ([]byte, error) {
+	return func(url string) ([]byte, error) {
+		if b, ok := m[url]; ok {
+			return b, nil
+		}
+		return nil, io.EOF
+	}
+}
+
+func TestRun_UpToDate(t *testing.T) {
+	api := "https://api/latest"
+	body := []byte(`{"tag_name":"v0.1.0","assets":[]}`)
+	applied := false
+	r := Runner{
+		HTTPGet: fakeHTTP(map[string][]byte{api: body}),
+		Apply:   func(io.Reader, []byte) error { applied = true; return nil },
+		GOOS:    "linux", GOARCH: "amd64",
+		Current: "v0.1.0", APIURL: api, Out: io.Discard,
+	}
+	if err := r.Run(); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if applied {
+		t.Fatal("最新なのに Apply が呼ばれた")
+	}
+}
+
+func TestRun_AppliesUpdate(t *testing.T) {
+	api := "https://api/latest"
+	body := []byte(`{"tag_name":"v0.2.0","assets":[
+		{"name":"navmux_linux_amd64","browser_download_url":"https://x/bin"},
+		{"name":"SHA256SUMS","browser_download_url":"https://x/sums"}
+	]}`)
+	sums := []byte("deadbeef  navmux_linux_amd64\n")
+	r := Runner{
+		HTTPGet: fakeHTTP(map[string][]byte{
+			api:             body,
+			"https://x/bin": []byte("BINARY"),
+			"https://x/sums": sums,
+		}),
+		GOOS: "linux", GOARCH: "amd64",
+		Current: "v0.1.0", APIURL: api, Out: io.Discard,
+	}
+	var gotChecksum []byte
+	var gotBin []byte
+	r.Apply = func(rd io.Reader, sum []byte) error {
+		gotChecksum = sum
+		gotBin, _ = io.ReadAll(rd)
+		return nil
+	}
+	if err := r.Run(); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if string(gotBin) != "BINARY" {
+		t.Fatalf("Apply に渡ったバイナリ = %q", gotBin)
+	}
+	if string(gotChecksum) != string([]byte{0xde, 0xad, 0xbe, 0xef}) {
+		t.Fatalf("checksum デコード不一致: %x", gotChecksum)
 	}
 }
