@@ -47,3 +47,27 @@ func buildMenu(b backend.Backend, sel backend.Session) []menuItem {
 	}
 	return items
 }
+
+// nextSelectable は cur から dir 方向へ、区切り/無効を飛ばした次の選択可能 index を返す。
+// 端では cur のまま据え置く。
+func nextSelectable(items []menuItem, cur, dir int) int {
+	i := cur
+	for {
+		n := i + dir
+		if n < 0 || n >= len(items) {
+			return cur
+		}
+		i = n
+		if items[i].kind != kindSep && items[i].enabled {
+			return i
+		}
+	}
+}
+
+// currentDisplay は cur 位置の display を返す（範囲外は空文字）。
+func currentDisplay(items []menuItem, cur int) string {
+	if cur < 0 || cur >= len(items) {
+		return ""
+	}
+	return items[cur].display
+}

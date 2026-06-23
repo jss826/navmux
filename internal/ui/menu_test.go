@@ -59,3 +59,31 @@ func TestBuildMenuNewAlwaysEnabled(t *testing.T) {
 		}
 	}
 }
+
+func TestNextSelectableSkipsSepAndDisabled(t *testing.T) {
+	items := []menuItem{
+		{kind: kindAction, label: "a", enabled: true},  // 0
+		{kind: kindAction, label: "b", enabled: false}, // 1 無効
+		{kind: kindSep, label: "--"},                   // 2 区切り
+		{kind: kindOp, label: "c", enabled: true},      // 3
+	}
+	if got := nextSelectable(items, 0, +1); got != 3 {
+		t.Fatalf("0 から +1 = %d want 3（1 と 2 をスキップ）", got)
+	}
+	if got := nextSelectable(items, 3, -1); got != 0 {
+		t.Fatalf("3 から -1 = %d want 0", got)
+	}
+	if got := nextSelectable(items, 3, +1); got != 3 {
+		t.Fatalf("末尾で +1 は据え置き = %d want 3", got)
+	}
+}
+
+func TestCurrentDisplay(t *testing.T) {
+	items := []menuItem{{display: "X"}, {display: "Y"}}
+	if currentDisplay(items, 1) != "Y" {
+		t.Fatal("index 1 の display は Y")
+	}
+	if currentDisplay(items, 9) != "" {
+		t.Fatal("範囲外は空文字")
+	}
+}
