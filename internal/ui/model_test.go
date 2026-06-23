@@ -35,3 +35,36 @@ func TestToggleExplain(t *testing.T) {
 		t.Fatalf("? で解説が開かない")
 	}
 }
+
+func TestRightArrowFocusesMenu(t *testing.T) {
+	m := New([]backend.Backend{backend.NewTmux()}, "")
+	if m.focus != 0 {
+		t.Fatalf("初期 focus = %d, want 0", m.focus)
+	}
+	// → でフォーカスが 1 になる
+	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyRight})
+	m = next.(Model)
+	if m.focus != 1 {
+		t.Fatalf("→ 後 focus = %d, want 1", m.focus)
+	}
+	// ← でフォーカスが 0 に戻る
+	next, _ = m.Update(tea.KeyMsg{Type: tea.KeyLeft})
+	m = next.(Model)
+	if m.focus != 0 {
+		t.Fatalf("← 後 focus = %d, want 0", m.focus)
+	}
+}
+
+func TestRenameGuardNoSelection(t *testing.T) {
+	// セッションが空の状態で r を押すと modePrompt に入らず status が設定される
+	m := New([]backend.Backend{backend.NewTmux()}, "")
+	// セッション無し（初期状態は空）
+	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'r'}})
+	m = next.(Model)
+	if m.mode == modePrompt {
+		t.Fatalf("セッション未選択で modePrompt に入ってしまった")
+	}
+	if m.status == "" {
+		t.Fatalf("セッション未選択で r を押したのに status が空")
+	}
+}

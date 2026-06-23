@@ -36,6 +36,9 @@ type Model struct {
 	sessions []backend.Session
 	cursor   int
 
+	focus      int // 0=リスト, 1=メニュー
+	menuCursor int // 右ペインのカーソル位置
+
 	mode    mode
 	pending action.Kind // prompt/confirm の対象アクション
 	input   textinput.Model
@@ -50,9 +53,10 @@ func New(backends []backend.Backend, current string) Model {
 	ti := textinput.New()
 	ti.Placeholder = "セッション名"
 	return Model{
-		backends: backends,
-		current:  current,
-		input:    ti,
+		backends:   backends,
+		current:    current,
+		input:      ti,
+		menuCursor: 1, // index 1 = "新規セッション"（常に enabled）
 	}
 }
 
@@ -75,6 +79,70 @@ func (m Model) selectedName() string {
 		return m.sessions[m.cursor].Name
 	}
 	return ""
+}
+
+// menu はアクティブな backend と選択中セッションに応じたメニュー項目を返す。
+func (m Model) menu() []menuItem {
+	var sel backend.Session
+	if m.cursor >= 0 && m.cursor < len(m.sessions) {
+		sel = m.sessions[m.cursor]
+	}
+	return buildMenu(m.ActiveBackend(), sel)
+}
+
+// startRename はリネームの前提条件をガードしてから modePrompt に遷移する。
+func (m Model) startRename() (tea.Model, tea.Cmd) {
+	if !m.ActiveBackend().CanRename() {
+		m.status = "この multiplexer はリネーム非対応"
+		return m, nil
+	}
+	if m.selectedName() == "" {
+		m.status = "セッションが選択されていません"
+		return m, nil
+	}
+	m.pending = action.Rename
+	m.mode = modePrompt
+	m.input.Focus()
+	return m, textinput.Blink
+}
+
+// runMenuItem は右ペインで Enter を押したときに menuCursor 位置の項目を実行する。
+func (m Model) runMenuItem() (tea.Model, tea.Cmd) {
+	items := m.menu()
+	if m.menuCursor < 0 || m.menuCursor >= len(items) {
+		return m, nil
+	}
+	it := items[m.menuCursor]
+	if !it.enabled {
+		return m, nil
+	}
+	switch it.kind {
+	case kindOp:
+		c := it.command
+		return m, func() tea.Msg {
+			_, err := runCommand(c)
+			return opDoneMsg{err: err}
+		}
+	case kindAction:
+		switch it.act {
+		case action.Attach:
+			return m, m.attachSelected()
+		case action.New:
+			m.pending = action.New
+			m.mode = modePrompt
+			m.input.Focus()
+			return m, textinput.Blink
+		case action.Rename:
+			return m.startRename()
+		case action.Kill:
+			if m.selectedName() == "" {
+				return m, nil
+			}
+			m.mode = modeConfirm
+			return m, nil
+		}
+	}
+	return m, nil
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -143,42 +211,62 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "q", "ctrl+c":
 		m.quitting = true
 		return m, tea.Quit
-	case "up", "k":
-		if m.cursor > 0 {
-			m.cursor--
-		}
-	case "down", "j":
-		if m.cursor < len(m.sessions)-1 {
-			m.cursor++
-		}
+
 	case "tab":
 		m.active = (m.active + 1) % len(m.backends)
 		m.cursor = 0
 		return m, m.refresh()
+
 	case "?":
 		m.showExplain = !m.showExplain
+
+	case "left":
+		m.focus = 0
+
+	case "right":
+		m.focus = 1
+
+	case "up", "k":
+		if m.focus == 1 {
+			items := m.menu()
+			m.menuCursor = nextSelectable(items, m.menuCursor, -1)
+		} else {
+			if m.cursor > 0 {
+				m.cursor--
+			}
+		}
+
+	case "down", "j":
+		if m.focus == 1 {
+			items := m.menu()
+			m.menuCursor = nextSelectable(items, m.menuCursor, 1)
+		} else {
+			if m.cursor < len(m.sessions)-1 {
+				m.cursor++
+			}
+		}
+
 	case "enter":
+		if m.focus == 1 {
+			return m.runMenuItem()
+		}
 		return m, m.attachSelected()
+
 	case "n":
 		m.pending = action.New
 		m.mode = modePrompt
 		m.input.Focus()
 		return m, textinput.Blink
+
 	case "r":
-		if !m.ActiveBackend().CanRename() {
-			m.status = "この multiplexer はリネーム非対応"
-			return m, nil
-		}
-		// 簡易版: 新名のみ入力（対象は選択中セッション）
-		m.pending = action.Rename
-		m.mode = modePrompt
-		m.input.Focus()
-		return m, textinput.Blink
+		return m.startRename()
+
 	case "d":
 		if m.selectedName() == "" {
 			return m, nil
 		}
 		m.mode = modeConfirm
+
 	case "y":
 		m.copyCurrentCommand()
 	}
@@ -232,6 +320,22 @@ func (m Model) attachSelected() tea.Cmd {
 }
 
 func (m *Model) copyCurrentCommand() {
+	// 右ペインにフォーカスがある場合はカーソル項目の display を使う
+	if m.focus == 1 {
+		items := m.menu()
+		disp := currentDisplay(items, m.menuCursor)
+		if disp == "" {
+			m.status = "コピーできるコマンドがありません"
+			return
+		}
+		if err := clipboard.WriteAll(disp); err != nil {
+			m.status = "コピー失敗: " + err.Error()
+			return
+		}
+		m.status = "コピーしました: " + disp
+		return
+	}
+	// 左ペイン（一覧）フォーカス時はアタッチコマンドをコピー
 	disp, ok := action.CommandFor(m.ActiveBackend(), action.Attach, m.selectedName(), "")
 	if !ok || disp == "" {
 		m.status = "コピーできるコマンドがありません"
@@ -251,6 +355,10 @@ func (m Model) View() string {
 	out := "navmux — " + m.ActiveBackend().Name() + "\n\n"
 	out += RenderList(m.sessions, m.cursor) + "\n"
 
+	// 右ペインメニュー
+	items := m.menu()
+	out += RenderMenu(items, m.menuCursor, m.focus == 1) + "\n"
+
 	if m.mode == modePrompt {
 		out += "\n名前: " + m.input.View() + "\n(enter 確定 / esc キャンセル)\n"
 	}
@@ -258,8 +366,18 @@ func (m Model) View() string {
 		out += "\n削除しますか? " + m.selectedName() + " [y/N]\n"
 	}
 	if m.showExplain {
-		disp, _ := action.CommandFor(m.ActiveBackend(), action.Attach, m.selectedName(), "")
-		out += "\n" + RenderExplain(action.All()[0], disp) + "\n"
+		// カーソル項目（左ペイン=アタッチ、右ペイン=メニュー項目）に連動した解説
+		var explainLabel, explainDisp string
+		if m.focus == 1 {
+			it := items[m.menuCursor]
+			explainLabel = it.label
+			explainDisp = currentDisplay(items, m.menuCursor)
+		} else {
+			explainLabel = action.All()[0].Label // "アタッチ"
+			explainDisp, _ = action.CommandFor(m.ActiveBackend(), action.Attach, m.selectedName(), "")
+		}
+		a := action.Action{Key: "?", Label: explainLabel}
+		out += "\n" + RenderExplain(a, explainDisp) + "\n"
 	}
 	out += "\n" + RenderFooter(action.All(), m.ActiveBackend().CanRename()) + "\n"
 	if m.status != "" {
