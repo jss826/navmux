@@ -50,7 +50,7 @@ func RenderFooter(actions []action.Action, b backend.Backend, name string) strin
 			parts = append(parts, fmt.Sprintf("(%s %s ×)", a.Key, a.Label))
 		}
 	}
-	parts = append(parts, "←→ ペイン移動", "y コピー", "? 解説", "tab tmux/zellij", "q 終了")
+	parts = append(parts, "←→ ペイン移動", "y コピー", "F5 更新", "? 解説", "tab tmux/zellij", "q 終了")
 	return strings.Join(parts, "   ")
 }
 

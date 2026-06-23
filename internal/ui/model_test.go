@@ -142,3 +142,11 @@ func TestCopyNoSessionListPane(t *testing.T) {
 		t.Fatalf("未選択コピーの status = %q", m.status)
 	}
 }
+
+func TestF5Refreshes(t *testing.T) {
+	m := New([]backend.Backend{backend.NewTmux()}, "")
+	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyF5})
+	if cmd == nil {
+		t.Fatal("F5 で refresh cmd が返らない")
+	}
+}

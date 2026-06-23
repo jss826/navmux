@@ -256,6 +256,9 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.quitting = true
 		return m, tea.Quit
 
+	case "f5":
+		return m, m.refresh()
+
 	case "tab":
 		m.active = (m.active + 1) % len(m.backends)
 		m.cursor = 0

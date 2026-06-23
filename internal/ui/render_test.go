@@ -65,6 +65,13 @@ func TestRenderExplainShowsCommand(t *testing.T) {
 	}
 }
 
+func TestRenderFooterShowsRefresh(t *testing.T) {
+	out := RenderFooter(action.All(), backend.NewTmux(), "main")
+	if !strings.Contains(out, "F5 更新") {
+		t.Fatalf("footer に F5 更新 が無い: %q", out)
+	}
+}
+
 func TestRenderMenuMarksCursorAndDisabled(t *testing.T) {
 	items := []menuItem{
 		{kind: kindAction, label: "アタッチ", enabled: true},
