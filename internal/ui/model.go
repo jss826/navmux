@@ -379,8 +379,9 @@ func (m Model) View() string {
 		// カーソル項目（左ペイン=アタッチ、右ペイン=メニュー項目）に連動した解説
 		var explainLabel, explainDisp string
 		if m.focus == 1 {
-			it := items[m.menuCursor]
-			explainLabel = it.label
+			if m.menuCursor >= 0 && m.menuCursor < len(items) {
+				explainLabel = items[m.menuCursor].label
+			}
 			explainDisp = currentDisplay(items, m.menuCursor)
 		} else {
 			explainLabel = action.All()[0].Label // "アタッチ"

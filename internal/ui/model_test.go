@@ -69,6 +69,16 @@ func TestRenameGuardNoSelection(t *testing.T) {
 	}
 }
 
+func TestViewExplainOutOfRangeMenuCursorNoPanic(t *testing.T) {
+	// showExplain + 右ペインフォーカスで menuCursor が範囲外でも panic しない。
+	// 現状は不変条件で範囲外にならないが、View() の素引きを兄弟アクセサと同じくガードする回帰テスト。
+	m := New([]backend.Backend{backend.NewTmux()}, "")
+	m.focus = 1
+	m.showExplain = true
+	m.menuCursor = 9999 // 故意に範囲外
+	_ = m.View()        // panic しなければ成功
+}
+
 func TestCopyNoSessionListPane(t *testing.T) {
 	// セッションなし・focus=0（左ペイン）で y を押すと不正コマンドをコピーしない
 	m := New([]backend.Backend{backend.NewTmux()}, "")
