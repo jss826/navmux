@@ -48,6 +48,18 @@ func (t *Tmux) KillCmd(name string) Command {
 
 func (t *Tmux) CanRename() bool { return true }
 
+func (t *Tmux) SessionOps(s Session) []OpPreset {
+	en := s.Name != ""
+	n := s.Name
+	return []OpPreset{
+		{Label: "新規ウィンドウ", Command: cmd(tmuxBin, "new-window", "-t", n), Enabled: en},
+		{Label: "分割(縦)", Command: cmd(tmuxBin, "split-window", "-h", "-t", n), Enabled: en},
+		{Label: "分割(横)", Command: cmd(tmuxBin, "split-window", "-v", "-t", n), Enabled: en},
+		{Label: "次ウィンドウ", Command: cmd(tmuxBin, "next-window", "-t", n), Enabled: en},
+		{Label: "閉じる", Command: cmd(tmuxBin, "kill-window", "-t", n), Enabled: en},
+	}
+}
+
 // newTmuxWithRun はテスト用に runFunc を差し替えた backend を返す。
 func newTmuxWithRun(run runFunc) *Tmux { return &Tmux{run: run} }
 

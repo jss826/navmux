@@ -71,6 +71,29 @@ func TestTmuxListNoServer(t *testing.T) {
 	}
 }
 
+func TestTmuxSessionOps(t *testing.T) {
+	ops := NewTmux().SessionOps(Session{Name: "foo"})
+	want := map[string]string{
+		"新規ウィンドウ": "tmux new-window -t foo",
+		"分割(縦)":   "tmux split-window -h -t foo",
+		"分割(横)":   "tmux split-window -v -t foo",
+		"次ウィンドウ":  "tmux next-window -t foo",
+		"閉じる":     "tmux kill-window -t foo",
+	}
+	got := map[string]string{}
+	for _, o := range ops {
+		got[o.Label] = o.Command.Display
+		if !o.Enabled {
+			t.Fatalf("%s が無効になっている", o.Label)
+		}
+	}
+	for k, v := range want {
+		if got[k] != v {
+			t.Fatalf("%s: got %q want %q", k, got[k], v)
+		}
+	}
+}
+
 var errFake = errorsNew("exit status 1")
 
 func errorsNew(s string) error { return &fakeErr{s} }

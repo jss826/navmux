@@ -23,6 +23,13 @@ type Command struct {
 	Display string
 }
 
+// OpPreset は右ペインに並べる 1 つの mux 操作。
+type OpPreset struct {
+	Label   string  // 例 "分割(縦)"
+	Command Command // 実行/表示用
+	Enabled bool    // false ならグレーアウト（実行不可）
+}
+
 // Backend は multiplexer の抽象。変更系は実行せずコマンドを返す。
 type Backend interface {
 	Name() string
@@ -30,11 +37,13 @@ type Backend interface {
 	List() ([]Session, error)
 
 	AttachCmd(name string) Command
-	SwitchCmd(name string) (Command, bool)            // tmux のみ true
-	NewCmd(name string) Command                       // detached 作成
+	SwitchCmd(name string) (Command, bool)             // tmux のみ true
+	NewCmd(name string) Command                        // detached 作成
 	RenameCmd(oldName, newName string) (Command, bool) // zellij は false
 	KillCmd(name string) Command
 
+	// SessionOps は対象セッションに実行できる mux 操作の一覧（backend 固有）。
+	SessionOps(s Session) []OpPreset
 	CanRename() bool
 }
 
