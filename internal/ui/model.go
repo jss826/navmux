@@ -336,6 +336,10 @@ func (m *Model) copyCurrentCommand() {
 		return
 	}
 	// 左ペイン（一覧）フォーカス時はアタッチコマンドをコピー
+	if m.selectedName() == "" {
+		m.status = "コピーできるコマンドがありません"
+		return
+	}
 	disp, ok := action.CommandFor(m.ActiveBackend(), action.Attach, m.selectedName(), "")
 	if !ok || disp == "" {
 		m.status = "コピーできるコマンドがありません"

@@ -68,3 +68,12 @@ func TestRenameGuardNoSelection(t *testing.T) {
 		t.Fatalf("セッション未選択で r を押したのに status が空")
 	}
 }
+
+func TestCopyNoSessionListPane(t *testing.T) {
+	// セッションなし・focus=0（左ペイン）で y を押すと不正コマンドをコピーしない
+	m := New([]backend.Backend{backend.NewTmux()}, "")
+	(&m).copyCurrentCommand()
+	if m.status != "コピーできるコマンドがありません" {
+		t.Fatalf("未選択コピーの status = %q", m.status)
+	}
+}
