@@ -43,6 +43,12 @@ func (z *Zellij) RenameCmd(oldName, newName string) (Command, bool) {
 	return Command{}, false
 }
 
+// RenameHintCmd は表示専用。alive セッションは action rename-session で改名可能だが、
+// Windows のコンソールなし実行でハングするため navmux からは実行しない（提示のみ）。
+func (z *Zellij) RenameHintCmd(oldName, newName string) (Command, bool) {
+	return cmd(zellijBin, "-s", oldName, "action", "rename-session", newName), true
+}
+
 func (z *Zellij) KillCmd(name string) Command {
 	return cmd(zellijBin, "delete-session", "-f", name)
 }

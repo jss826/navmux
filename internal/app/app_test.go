@@ -23,6 +23,9 @@ func (f fakeBackend) NewCmd(string) backend.Command { return backend.Command{} }
 func (f fakeBackend) RenameCmd(string, string) (backend.Command, bool) {
 	return backend.Command{}, false
 }
+func (f fakeBackend) RenameHintCmd(string, string) (backend.Command, bool) {
+	return backend.Command{}, false
+}
 func (f fakeBackend) KillCmd(string) backend.Command { return backend.Command{} }
 func (f fakeBackend) CanRename() bool                { return false }
 func (f fakeBackend) SessionOps(backend.Session) []backend.OpPreset { return nil }

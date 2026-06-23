@@ -39,6 +39,13 @@ func TestTmuxBuilders(t *testing.T) {
 	}
 }
 
+func TestTmuxRenameHintCmd(t *testing.T) {
+	c, ok := NewTmux().RenameHintCmd("foo", "bar")
+	if !ok || c.Display != "tmux rename-session -t foo bar" {
+		t.Fatalf("RenameHintCmd = %q,%v", c.Display, ok)
+	}
+}
+
 func TestParseTmuxList(t *testing.T) {
 	out := "main|1|3\nwork|0|1\n"
 	got, err := parseTmuxList(out)

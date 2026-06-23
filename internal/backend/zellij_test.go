@@ -104,6 +104,19 @@ func TestZellijCaptureOps(t *testing.T) {
 	}
 }
 
+func TestZellijRenameHintCmd(t *testing.T) {
+	z := NewZellij()
+	// 実行は非対応のまま
+	if _, ok := z.RenameCmd("foo", "bar"); ok {
+		t.Fatal("zellij RenameCmd は実行非対応のはず")
+	}
+	// ヒントとしてコマンドは提示する
+	c, ok := z.RenameHintCmd("foo", "bar")
+	if !ok || c.Display != "zellij -s foo action rename-session bar" {
+		t.Fatalf("RenameHintCmd = %q,%v", c.Display, ok)
+	}
+}
+
 func TestZellijSessionOpsDetachOthersIsHint(t *testing.T) {
 	ops := NewZellij().SessionOps(Session{Name: "foo"})
 	found := false

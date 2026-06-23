@@ -42,6 +42,11 @@ func (t *Tmux) RenameCmd(oldName, newName string) (Command, bool) {
 	return cmd(tmuxBin, "rename-session", "-t", oldName, newName), true
 }
 
+// RenameHintCmd は表示用。tmux は実行可能コマンドと同一。
+func (t *Tmux) RenameHintCmd(oldName, newName string) (Command, bool) {
+	return t.RenameCmd(oldName, newName)
+}
+
 func (t *Tmux) KillCmd(name string) Command {
 	return cmd(tmuxBin, "kill-session", "-t", name)
 }

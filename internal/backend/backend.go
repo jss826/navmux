@@ -40,7 +40,8 @@ type Backend interface {
 	AttachCmd(name string) Command
 	SwitchCmd(name string) (Command, bool)             // tmux のみ true
 	NewCmd(name string) Command                        // detached 作成
-	RenameCmd(oldName, newName string) (Command, bool) // zellij は false
+	RenameCmd(oldName, newName string) (Command, bool)     // zellij は false
+	RenameHintCmd(oldName, newName string) (Command, bool) // 表示専用（zellij も true）
 	KillCmd(name string) Command
 
 	// SessionOps は対象セッションに実行できる mux 操作の一覧（backend 固有）。

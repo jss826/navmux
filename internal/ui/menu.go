@@ -34,7 +34,7 @@ func buildMenu(b backend.Backend, sel backend.Session) []menuItem {
 		{kind: kindAction, act: action.Kill, label: "削除", display: b.KillCmd(name).Display, enabled: action.Runnable(b, action.Kill, name)},
 		{kind: kindSep, label: "── 操作 ──"},
 	}
-	if rc, ok := b.RenameCmd(name, "<new>"); ok {
+	if rc, ok := b.RenameHintCmd(name, "<new>"); ok {
 		items[2].display = rc.Display
 	}
 	for _, op := range b.SessionOps(sel) {
