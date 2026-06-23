@@ -3,6 +3,9 @@ package ui
 import (
 	"strings"
 	"testing"
+
+	"github.com/charmbracelet/lipgloss"
+	"github.com/muesli/termenv"
 )
 
 // styleDashboard は装飾層。ANSI の正確な中身は検査せず、
@@ -40,12 +43,16 @@ func TestStyleDashboardOmitsEmptyStatus(t *testing.T) {
 }
 
 // focus 0/1 で出力が異なる（フォーカス枠が反映される）。
+// 非 TTY 環境では lipgloss がカラー出力を抑制するため、テストスコープ内で
+// TrueColor プロファイルを強制し、defer で復元する。
 func TestStyleDashboardFocusChangesOutput(t *testing.T) {
+	old := lipgloss.ColorProfile()
+	lipgloss.SetColorProfile(termenv.TrueColor)
+	defer lipgloss.SetColorProfile(old)
+
 	left := styleDashboard("t", "l", "m", "e", "f", "", 0)
 	right := styleDashboard("t", "l", "m", "e", "f", "", 1)
 	if left == right {
 		t.Fatal("focus 0/1 で出力が同一（フォーカス枠が反映されていない）")
 	}
-	// focus が異なると Sessions/Actions ペインの枠色コード（BrightCyan = color 14）が異なるはず
-	// left なら Sessions に色が入り、right なら Actions に色が入るので、出力は異なる
 }
