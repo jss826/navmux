@@ -150,3 +150,35 @@ func TestURefreshes(t *testing.T) {
 		t.Fatal("u で refresh cmd が返らない")
 	}
 }
+
+type purgeSpyBackend struct {
+	backend.Backend
+	purged []string
+}
+
+func (b *purgeSpyBackend) PurgeSocket(name string) error {
+	b.purged = append(b.purged, name)
+	return nil
+}
+
+func TestKillZombiePurgesSocket(t *testing.T) {
+	spy := &purgeSpyBackend{Backend: backend.NewZellij()}
+	m := New([]backend.Backend{spy}, "zellij")
+	m.sessions = []backend.Session{{Name: "den2", Zombie: true}}
+	m.cursor = 0
+	m.purgeIfDead(spy, m.selectedSession())
+	if len(spy.purged) != 1 || spy.purged[0] != "den2" {
+		t.Fatalf("PurgeSocket 呼び出し = %v, want [den2]", spy.purged)
+	}
+}
+
+func TestKillAliveDoesNotPurge(t *testing.T) {
+	spy := &purgeSpyBackend{Backend: backend.NewZellij()}
+	m := New([]backend.Backend{spy}, "zellij")
+	m.sessions = []backend.Session{{Name: "live"}}
+	m.cursor = 0
+	m.purgeIfDead(spy, m.selectedSession())
+	if len(spy.purged) != 0 {
+		t.Fatalf("生存で PurgeSocket が呼ばれた: %v", spy.purged)
+	}
+}

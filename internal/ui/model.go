@@ -327,6 +327,14 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+// purgeIfDead は対象が Dead/Zombie のときソケット残骸を掃除する（ベストエフォート）。
+// 生存セッションのソケットは消さない（稼働中サーバーを壊さない）。
+func (m Model) purgeIfDead(b backend.Backend, s backend.Session) {
+	if s.Dead || s.Zombie {
+		_ = b.PurgeSocket(s.Name)
+	}
+}
+
 // runOp は変更系操作を tea.Cmd 化する（New/Rename/Kill）。
 func (m Model) runOp(k action.Kind, arg string) tea.Cmd {
 	b := m.ActiveBackend()
@@ -334,6 +342,7 @@ func (m Model) runOp(k action.Kind, arg string) tea.Cmd {
 		return m.newSessionCmd(b, arg)
 	}
 	sel := m.selectedName()
+	selSession := m.selectedSession()
 	return func() tea.Msg {
 		var c backend.Command
 		switch k {
@@ -344,6 +353,7 @@ func (m Model) runOp(k action.Kind, arg string) tea.Cmd {
 			}
 			c = rc
 		case action.Kill:
+			m.purgeIfDead(b, selSession)
 			c = b.KillCmd(sel)
 		default:
 			return opDoneMsg{}
