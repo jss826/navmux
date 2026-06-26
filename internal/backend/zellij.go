@@ -1,7 +1,10 @@
 package backend
 
 import (
+	"fmt"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 )
 
@@ -61,6 +64,18 @@ func (z *Zellij) KillCmd(name string) Command {
 }
 
 func (z *Zellij) CanRename() bool { return false }
+
+func (z *Zellij) PurgeSocket(name string) error {
+	if !validSessionName(name) {
+		return fmt.Errorf("不正なセッション名: %q", name)
+	}
+	root := socketRoot()
+	rel, ok := findSocket(os.DirFS(root), name)
+	if !ok {
+		return nil
+	}
+	return os.Remove(filepath.Join(root, filepath.FromSlash(rel)))
+}
 
 func (z *Zellij) SessionOps(s Session) []OpPreset {
 	en := s.Name != "" && !s.Dead

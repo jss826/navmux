@@ -53,6 +53,9 @@ func (t *Tmux) KillCmd(name string) Command {
 
 func (t *Tmux) CanRename() bool { return true }
 
+// PurgeSocket: tmux はソケット残骸ゾンビの概念を持たないため no-op。
+func (t *Tmux) PurgeSocket(name string) error { return nil }
+
 func (t *Tmux) SessionOps(s Session) []OpPreset {
 	en := s.Name != ""
 	n := s.Name

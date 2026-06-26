@@ -3,6 +3,7 @@ package backend
 import (
 	"reflect"
 	"testing"
+	"testing/fstest"
 )
 
 func TestParseServerNames(t *testing.T) {
@@ -34,6 +35,32 @@ func TestMarkZombies(t *testing.T) {
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("markZombies = %+v, want %+v", got, want)
+	}
+}
+
+func TestValidSessionName(t *testing.T) {
+	cases := map[string]bool{
+		"nav": true, "den2": true,
+		"": false, "..": false, "a/b": false, `a\b`: false, "a..b": false,
+	}
+	for name, want := range cases {
+		if got := validSessionName(name); got != want {
+			t.Fatalf("validSessionName(%q) = %v, want %v", name, got, want)
+		}
+	}
+}
+
+func TestFindSocket(t *testing.T) {
+	fsys := fstest.MapFS{
+		"contract_version_1/nav":  {Data: []byte("x")},
+		"contract_version_1/den2": {Data: []byte("x")},
+	}
+	got, ok := findSocket(fsys, "den2")
+	if !ok || got != "contract_version_1/den2" {
+		t.Fatalf("findSocket den2 = %q,%v", got, ok)
+	}
+	if _, ok := findSocket(fsys, "missing"); ok {
+		t.Fatal("findSocket missing は false のはず")
 	}
 }
 

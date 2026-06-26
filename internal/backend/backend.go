@@ -48,6 +48,9 @@ type Backend interface {
 	// SessionOps は対象セッションに実行できる mux 操作の一覧（backend 固有）。
 	SessionOps(s Session) []OpPreset
 	CanRename() bool
+
+	// PurgeSocket は name のソケット残骸を削除する（ゾンビ/EXITED 掃除用）。残骸が無ければ nil。
+	PurgeSocket(name string) error
 }
 
 // cmd は Argv から Display を導出して Command を組む。

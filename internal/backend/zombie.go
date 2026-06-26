@@ -1,9 +1,37 @@
 package backend
 
 import (
+	"io/fs"
 	"path"
 	"strings"
 )
+
+// validSessionName は os.Remove に渡す前のセッション名の防御的検証。
+func validSessionName(name string) bool {
+	if name == "" || name == "." || name == ".." {
+		return false
+	}
+	if strings.ContainsAny(name, `/\`) || strings.Contains(name, "..") {
+		return false
+	}
+	return true
+}
+
+// findSocket は fsys 配下を歩き、ベース名が name と完全一致する最初のファイルの相対パスを返す。
+func findSocket(fsys fs.FS, name string) (string, bool) {
+	var found string
+	_ = fs.WalkDir(fsys, ".", func(p string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return nil
+		}
+		if !d.IsDir() && path.Base(p) == name {
+			found = p
+			return fs.SkipAll
+		}
+		return nil
+	})
+	return found, found != ""
+}
 
 // markZombies は server プロセス名集合に存在しない alive セッションを Zombie にする。
 // Dead(EXITED) と Attached(current=自分が接続中＝生存) は対象外。
