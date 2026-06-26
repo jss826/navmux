@@ -105,6 +105,13 @@ func (m Model) selectedName() string {
 	return ""
 }
 
+func (m Model) selectedSession() backend.Session {
+	if m.cursor >= 0 && m.cursor < len(m.sessions) {
+		return m.sessions[m.cursor]
+	}
+	return backend.Session{}
+}
+
 // menu はアクティブな backend と選択中セッションに応じたメニュー項目を返す。
 func (m Model) menu() []menuItem {
 	var sel backend.Session
@@ -428,7 +435,7 @@ func (m Model) View() string {
 		RenderList(m.sessions, m.cursor),
 		RenderMenu(items, m.menuCursor, m.focus == 1),
 		currentDisplay(items, m.menuCursor),
-		RenderFooter(action.All(), m.ActiveBackend(), m.selectedName()),
+		RenderFooter(action.All(), m.ActiveBackend(), m.selectedSession()),
 		m.status,
 		m.focus,
 	)

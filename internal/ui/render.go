@@ -26,6 +26,8 @@ func RenderList(sessions []backend.Session, cursor int) string {
 		extra := ""
 		if s.Dead {
 			extra = " (EXITED)"
+		} else if s.Zombie {
+			extra = " (応答なし)"
 		} else if s.Windows > 0 {
 			extra = fmt.Sprintf(" [%d windows]", s.Windows)
 		}
@@ -36,11 +38,15 @@ func RenderList(sessions []backend.Session, cursor int) string {
 
 // RenderFooter はアクションをキー併記で 1 行に並べ、実行可否を色で示す。
 // 実行可 → 色付き / 実行不可（状態的・構造的どちらも） → 減光（グレーアウト）。記号は使わない。
-func RenderFooter(actions []action.Action, b backend.Backend, name string) string {
+func RenderFooter(actions []action.Action, b backend.Backend, sel backend.Session) string {
 	var parts []string
 	for _, a := range actions {
 		label := fmt.Sprintf("%s %s", a.Key, a.Label)
-		if action.Runnable(b, a.Kind, name) {
+		ok := action.Runnable(b, a.Kind, sel.Name)
+		if a.Kind == action.Attach {
+			ok = canAttach(sel)
+		}
+		if ok {
 			parts = append(parts, runnableStyle.Render(label))
 		} else {
 			parts = append(parts, faintStyle.Render(label))

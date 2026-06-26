@@ -28,7 +28,7 @@ func TestRenderListMarksCursorAndState(t *testing.T) {
 
 func TestRenderFooterShowsKeys(t *testing.T) {
 	// tmux + 選択あり → 全アクション実行可。記号(× / 非対応)は出ない。
-	out := RenderFooter(action.All(), backend.NewTmux(), "main")
+	out := RenderFooter(action.All(), backend.NewTmux(), backend.Session{Name: "main"})
 	for _, want := range []string{"enter", "アタッチ", "n", "d"} {
 		if !strings.Contains(out, want) {
 			t.Fatalf("footer に %q が無い: %q", want, out)
@@ -45,8 +45,8 @@ func TestRenderFooterStylesRunnableVsDisabled(t *testing.T) {
 	lipgloss.SetColorProfile(termenv.TrueColor)
 	defer lipgloss.SetColorProfile(old)
 
-	runnable := RenderFooter(action.All(), backend.NewTmux(), "main") // 全可
-	disabled := RenderFooter(action.All(), backend.NewTmux(), "")     // attach/rename/kill 不可
+	runnable := RenderFooter(action.All(), backend.NewTmux(), backend.Session{Name: "main"}) // 全可
+	disabled := RenderFooter(action.All(), backend.NewTmux(), backend.Session{})             // attach/rename/kill 不可
 	if runnable == disabled {
 		t.Fatal("実行可否で footer のスタイルが変わっていない")
 	}
@@ -64,8 +64,8 @@ func TestRenderFooterFaintsZellijRename(t *testing.T) {
 	lipgloss.SetColorProfile(termenv.TrueColor)
 	defer lipgloss.SetColorProfile(old)
 
-	zj := RenderFooter(action.All(), backend.NewZellij(), "main")
-	tm := RenderFooter(action.All(), backend.NewTmux(), "main")
+	zj := RenderFooter(action.All(), backend.NewZellij(), backend.Session{Name: "main"})
+	tm := RenderFooter(action.All(), backend.NewTmux(), backend.Session{Name: "main"})
 	if zj == tm {
 		t.Fatal("zellij(rename不可) と tmux(rename可) で footer スタイルが同一")
 	}
@@ -83,9 +83,31 @@ func TestRenderExplainShowsCommand(t *testing.T) {
 }
 
 func TestRenderFooterShowsRefresh(t *testing.T) {
-	out := RenderFooter(action.All(), backend.NewTmux(), "main")
+	out := RenderFooter(action.All(), backend.NewTmux(), backend.Session{Name: "main"})
 	if !strings.Contains(out, "u 更新") {
 		t.Fatalf("footer に u 更新 が無い: %q", out)
+	}
+}
+
+func TestRenderListZombie(t *testing.T) {
+	out := RenderList([]backend.Session{{Name: "den2", Zombie: true}}, 0)
+	if !strings.Contains(out, "den2") || !strings.Contains(out, "応答なし") {
+		t.Fatalf("ゾンビ表示が無い: %q", out)
+	}
+}
+
+func TestCanAttach(t *testing.T) {
+	if canAttach(backend.Session{Name: "x", Zombie: true}) {
+		t.Fatal("Zombie はアタッチ不可のはず")
+	}
+	if canAttach(backend.Session{Name: "x", Dead: true}) {
+		t.Fatal("Dead はアタッチ不可のはず")
+	}
+	if !canAttach(backend.Session{Name: "x"}) {
+		t.Fatal("生存はアタッチ可のはず")
+	}
+	if canAttach(backend.Session{Name: ""}) {
+		t.Fatal("空名はアタッチ不可のはず")
 	}
 }
 

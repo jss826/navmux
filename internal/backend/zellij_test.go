@@ -81,6 +81,12 @@ func TestZellijSessionOps(t *testing.T) {
 			t.Fatalf("EXITED で %s が有効になっている", o.Label)
 		}
 	}
+	// Zombie セッションでは無効
+	for _, o := range NewZellij().SessionOps(Session{Name: "foo", Zombie: true}) {
+		if o.Enabled {
+			t.Fatalf("Zombie で %s が有効になっている", o.Label)
+		}
+	}
 }
 
 func TestZellijCaptureOps(t *testing.T) {

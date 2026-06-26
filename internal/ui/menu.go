@@ -24,11 +24,16 @@ type menuItem struct {
 	enabled bool
 }
 
+// canAttach は s にアタッチ可能か（生存していて名前があるか）を返す。
+func canAttach(s backend.Session) bool {
+	return s.Name != "" && !s.Dead && !s.Zombie
+}
+
 // buildMenu は選択中セッションに対する右ペインのメニューを組む（純関数）。
 func buildMenu(b backend.Backend, sel backend.Session) []menuItem {
 	name := sel.Name
 	items := []menuItem{
-		{kind: kindAction, act: action.Attach, label: "アタッチ", display: b.AttachCmd(name).Display, enabled: action.Runnable(b, action.Attach, name)},
+		{kind: kindAction, act: action.Attach, label: "アタッチ", display: b.AttachCmd(name).Display, enabled: canAttach(sel)},
 		{kind: kindAction, act: action.New, label: "新規セッション", display: b.NewCmd("<name>").Display, enabled: action.Runnable(b, action.New, name)},
 		{kind: kindAction, act: action.Rename, label: "リネーム", enabled: action.Runnable(b, action.Rename, name)},
 		{kind: kindAction, act: action.Kill, label: "削除", display: b.KillCmd(name).Display, enabled: action.Runnable(b, action.Kill, name)},

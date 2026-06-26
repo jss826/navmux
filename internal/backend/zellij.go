@@ -78,7 +78,7 @@ func (z *Zellij) PurgeSocket(name string) error {
 }
 
 func (z *Zellij) SessionOps(s Session) []OpPreset {
-	en := s.Name != "" && !s.Dead
+	en := s.Name != "" && !s.Dead && !s.Zombie
 	n := s.Name
 	return []OpPreset{
 		{Label: "新規タブ", Command: cmd(zellijBin, "-s", n, "action", "new-tab"), Enabled: en},
