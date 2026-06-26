@@ -17,7 +17,7 @@ type Zellij struct {
 }
 
 // NewZellij は実プロセスで動く zellij backend を返す（proc は Task 4 で注入）。
-func NewZellij() *Zellij { return &Zellij{run: execRun(zellijBin), proc: nil} }
+func NewZellij() *Zellij { return &Zellij{run: execRun(zellijBin), proc: serverCommandLines} }
 
 // newZellijWithRun はテスト用に runFunc を差し替える（proc は nil）。
 func newZellijWithRun(run runFunc) *Zellij { return &Zellij{run: run} }
