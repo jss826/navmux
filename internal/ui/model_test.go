@@ -161,6 +161,21 @@ func (b *purgeSpyBackend) PurgeSocket(name string) error {
 	return nil
 }
 
+func TestAttachSelectedBlocksZombie(t *testing.T) {
+	m := New([]backend.Backend{backend.NewZellij()}, "zellij")
+	m.sessions = []backend.Session{{Name: "den2", Zombie: true}}
+	m.cursor = 0
+	cmd := m.attachSelected()
+	if cmd == nil {
+		t.Fatal("zombie では nil（無反応）でなく状態メッセージ cmd を返すべき")
+	}
+	msg := cmd()
+	od, ok := msg.(opDoneMsg)
+	if !ok || od.err != errNotAttachable {
+		t.Fatalf("zombie attach msg = %#v, want opDoneMsg{errNotAttachable}", msg)
+	}
+}
+
 func TestKillZombiePurgesSocket(t *testing.T) {
 	spy := &purgeSpyBackend{Backend: backend.NewZellij()}
 	m := New([]backend.Backend{spy}, "zellij")

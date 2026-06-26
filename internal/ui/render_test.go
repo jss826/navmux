@@ -100,8 +100,8 @@ func TestCanAttach(t *testing.T) {
 	if canAttach(backend.Session{Name: "x", Zombie: true}) {
 		t.Fatal("Zombie はアタッチ不可のはず")
 	}
-	if canAttach(backend.Session{Name: "x", Dead: true}) {
-		t.Fatal("Dead はアタッチ不可のはず")
+	if !canAttach(backend.Session{Name: "x", Dead: true}) {
+		t.Fatal("Dead(EXITED) は再アタッチ(復活)可のはず")
 	}
 	if !canAttach(backend.Session{Name: "x"}) {
 		t.Fatal("生存はアタッチ可のはず")

@@ -49,6 +49,9 @@ func containsSession(sessions []backend.Session, name string) bool {
 // errNotCreated は生成コマンドが exit 0 でも実在確認に失敗したときに返す。
 var errNotCreated = errors.New("作成に失敗した可能性があります（一覧に現れませんでした）")
 
+// errNotAttachable はアタッチ不可（ゾンビ等）のセッションへのアタッチ試行で返す。
+var errNotAttachable = errors.New("アタッチできません（応答なし/ゾンビ）")
+
 // confirmCreated は name のセッションが List() に現れるまで短くポーリングして
 // 実在を確認する。生成コマンドの exit 0 を信用しない。
 func confirmCreated(b backend.Backend, name string) error {

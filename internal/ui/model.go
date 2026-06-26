@@ -384,6 +384,10 @@ func (m Model) attachSelected() tea.Cmd {
 	if name == "" {
 		return nil
 	}
+	if !canAttach(m.selectedSession()) {
+		// ゾンビ等はアタッチでハングするため実行しない。状態メッセージを返す。
+		return func() tea.Msg { return opDoneMsg{err: errNotAttachable} }
+	}
 	plan := attach.Resolve(m.ActiveBackend(), name, m.current)
 	if plan.Mode == attach.ModeSwitch {
 		c := plan.Command

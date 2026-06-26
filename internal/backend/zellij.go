@@ -19,7 +19,7 @@ type Zellij struct {
 	proc procLister
 }
 
-// NewZellij は実プロセスで動く zellij backend を返す（proc は Task 4 で注入）。
+// NewZellij は実プロセスで動く zellij backend を返す（proc は server プロセス走査の OS 依存実装）。
 func NewZellij() *Zellij { return &Zellij{run: execRun(zellijBin), proc: serverCommandLines} }
 
 // newZellijWithRun はテスト用に runFunc を差し替える（proc は nil）。

@@ -24,9 +24,10 @@ type menuItem struct {
 	enabled bool
 }
 
-// canAttach は s にアタッチ可能か（生存していて名前があるか）を返す。
+// canAttach は s にアタッチ可能か（名前があり応答不能=Zombie でないか）を返す。
+// EXITED(Dead) は zellij attach で復活(resurrect)できるためアタッチ可。Zombie はハングするため不可。
 func canAttach(s backend.Session) bool {
-	return s.Name != "" && !s.Dead && !s.Zombie
+	return s.Name != "" && !s.Zombie
 }
 
 // buildMenu は選択中セッションに対する右ペインのメニューを組む（純関数）。
