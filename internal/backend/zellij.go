@@ -7,16 +7,23 @@ import (
 
 const zellijBin = "zellij"
 
+// procLister は実行中プロセスのコマンドライン一覧を返す。テストで差し替える。
+type procLister func() ([]string, error)
+
 // Zellij は zellij backend。
 type Zellij struct {
-	run runFunc
+	run  runFunc
+	proc procLister
 }
 
-// NewZellij は実プロセスで動く zellij backend を返す。
-func NewZellij() *Zellij { return &Zellij{run: execRun(zellijBin)} }
+// NewZellij は実プロセスで動く zellij backend を返す（proc は Task 4 で注入）。
+func NewZellij() *Zellij { return &Zellij{run: execRun(zellijBin), proc: nil} }
 
-// newZellijWithRun はテスト用に runFunc を差し替える。
+// newZellijWithRun はテスト用に runFunc を差し替える（proc は nil）。
 func newZellijWithRun(run runFunc) *Zellij { return &Zellij{run: run} }
+
+// newZellijWithProc はテスト用に run と proc を差し替える。
+func newZellijWithProc(run runFunc, proc procLister) *Zellij { return &Zellij{run: run, proc: proc} }
 
 func (z *Zellij) Name() string { return "zellij" }
 
@@ -78,7 +85,13 @@ func (z *Zellij) List() ([]Session, error) {
 		}
 		return nil, err
 	}
-	return parseZellijList(out), nil
+	sessions := parseZellijList(out)
+	if z.proc != nil {
+		if cmdlines, perr := z.proc(); perr == nil {
+			sessions = markZombies(sessions, parseServerNames(cmdlines))
+		}
+	}
+	return sessions, nil
 }
 
 func parseZellijList(out string) []Session {
