@@ -15,6 +15,7 @@ type Session struct {
 	Attached bool // 今このセッションにアタッチ中か
 	Windows  int  // tmux のみ。zellij は 0
 	Dead     bool // zellij の EXITED セッション。tmux は常に false
+	Zombie   bool // server 不在なのに list に生きて見える応答なし状態。tmux は常に false
 }
 
 // Command は「実行用 Argv」と「表示/コピー用文字列」を分離して持つ。
